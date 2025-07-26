@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\Event;
+use App\Events\PasswordResetTokenEvent;
+use App\Listeners\PasswordResetTokenListener;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +22,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Event::listen(
+        //     PasswordResetTokenEvent::class,
+        //     PasswordResetTokenListener::class,
+        // );
     }
 }
