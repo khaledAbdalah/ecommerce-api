@@ -31,6 +31,7 @@ class UserProfileController extends Controller
 
             $user->name = $validated['name'];
             $user->email = $validated['email'];
+            $user->save();
             
             return response()->json([
                 'success' => true,
@@ -40,6 +41,39 @@ class UserProfileController extends Controller
                 ]
             ]);
         } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'errors' => $e->errors(),
+            ], 422);
+        }
+    }
+
+    public function updatePassword(Request $request)
+    {
+        try {
+
+            $user = $request->user();
+            $validated = $request->validate([
+                'old_password' => 'required',
+                'new_password' => 'required|confirmed|min:8'
+            ]);
+
+            // check if old password is correct 
+            if(!Hash::check($request->old_password, $user->password)){
+                throw ValidationException::withMessages([
+                    'old_password' => 'Incorrect old password',
+                ]);
+            }
+
+            $user->password = Hash::make($validated['new_password']);
+            $user->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Password updated successfully',
+            ]);
+
+        } catch(ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'errors' => $e->errors(),

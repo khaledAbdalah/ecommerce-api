@@ -18,4 +18,5 @@ Route::post('logout', LogoutController::class)->middleware('auth:sanctum');
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('profile/show', [UserProfileController::class, 'show']);
     Route::post('profile/update', [UserProfileController::class, 'update']);
+    Route::post('profile/update/password', [UserProfileController::class, 'updatePassword']);
 });
