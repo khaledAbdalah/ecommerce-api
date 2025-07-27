@@ -12,15 +12,12 @@ class CategoryController extends Controller
      */
     public function index()
     {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'categories' => Category::all()
+            ]
+        ]);
     }
 
     /**
@@ -35,14 +32,6 @@ class CategoryController extends Controller
      * Display the specified resource.
      */
     public function show(Category $category)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Category $category)
     {
         //
     }
