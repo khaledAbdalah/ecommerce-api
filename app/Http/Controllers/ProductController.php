@@ -14,7 +14,15 @@ class ProductController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index() {}
+    public function index() 
+    {
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'products' => Product::paginate(10)
+            ]
+        ]);
+    }
 
     /**
      * Store a newly created resource in storage.

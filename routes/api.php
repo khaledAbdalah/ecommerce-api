@@ -7,6 +7,7 @@ use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ProductController;
 
 // auth routes
@@ -30,3 +31,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // products routes
 Route::apiResource('products', ProductController::class);
+
+// categories routes
+Route::apiResource('categories', CategoryController::class);
