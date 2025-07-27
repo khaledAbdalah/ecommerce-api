@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\Auth\ResetPasswordController;
 
 // auth routes
 Route::middleware('api.guest')->group(function () {
@@ -14,6 +15,7 @@ Route::middleware('api.guest')->group(function () {
 });
 
 Route::post('forgot-password', ForgotPasswordController::class);
+Route::post('reset-password', ResetPasswordController::class);
 
 Route::post('logout', LogoutController::class)->middleware('auth:sanctum');
 
