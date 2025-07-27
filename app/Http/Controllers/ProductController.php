@@ -92,9 +92,59 @@ class ProductController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Product $product)
+    public function update(Request $request, $id)
     {
-        //
+        try {
+
+            if (!$product = Product::find($id)) throw new ModelNotFoundException('Product not found');
+
+            $validated =  $request->validate([
+                'name' => 'required|string|max:255',
+                'short_description' => 'required|string',
+                'description' => 'required|string',
+                'thumbnail' => 'nullable|image|mimes:png,jpg,jpeg,webp',
+                'gallery' => 'nullable|array',
+                'gallery.*' => 'image|mimes:png,jpg,jpeg,webp',
+                'price' => 'required|numeric|min:0',
+                'stock' => 'required|integer|min:0',
+                'status' => 'required|in:published,draft',
+                'featured' => 'required|boolean',
+            ]);
+
+            // store thumbnail and gallery 
+            if ($request->hasFile('thumbnail')) {
+                $validated['thumbnail'] = $request->file('thumbnail')->store('products/thumbnails');
+            }
+
+            if ($request->hasFile('gallery') && is_array($request->file('gallery'))) {
+                $gallery = [];
+                foreach ($request->file('gallery') as $image) {
+                    $gallery[] = $image->store('products/galleries');
+                }
+
+                $validated['gallery'] = json_encode($gallery);
+            }
+
+            $product->update($validated);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Product updated successfully',
+                'data' => [
+                    'product' => $product,
+                ]
+            ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+            ], 404);
+        }
     }
 
     /**
