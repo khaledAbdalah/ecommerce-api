@@ -10,7 +10,7 @@ class Product extends Model
         'name',
         'short_description',
         'description',
-        'image',
+        'thumbnail',
         'gallery',
         'price',
         'stock',

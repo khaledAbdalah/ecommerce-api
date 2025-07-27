@@ -7,6 +7,7 @@ use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
+use App\Http\Controllers\ProductController;
 
 // auth routes
 Route::middleware('api.guest')->group(function () {
@@ -26,3 +27,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('profile/update/password', [UserProfileController::class, 'updatePassword']);
     Route::delete('profile/delete', [UserProfileController::class, 'destroy']);
 });
+
+// products routes
+Route::apiResource('products', ProductController::class);
