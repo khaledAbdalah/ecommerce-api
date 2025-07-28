@@ -13,4 +13,9 @@ class Category extends Model
     {
         Storage::delete($this->thumbanil);
     }
+
+    public function products()
+    {
+        return $this->belongsToMany(Product::class);
+    }
 }
