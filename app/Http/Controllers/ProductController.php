@@ -65,7 +65,7 @@ class ProductController extends Controller
                 'data' => [
                     'product' => $product,
                 ]
-            ]);
+            ], 201);
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,

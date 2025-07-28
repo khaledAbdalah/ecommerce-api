@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name')->unique();
             $table->text('description')->nullable();
-            $table->string('thumbanil');
+            $table->string('thumbanil')->nullable();
             $table->timestamps();
         });
     }
