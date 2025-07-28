@@ -29,9 +29,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('profile/delete', [UserProfileController::class, 'destroy']);
 });
 
-// products routes
-Route::apiResource('products', ProductController::class);
-Route::get('products/create', [ProductController::class, 'create']);
+// products routes and categories
+Route::apiResource('products', ProductController::class)->only(['index', 'show']);
+Route::apiResource('categories', CategoryController::class)->only(['index', 'show']);
 
-// categories routes
-Route::apiResource('categories', CategoryController::class);
+Route::middleware(['auth:sanctum', 'isAdmin'])->group(function () {
+    Route::get('products/create',  [ProductController::class, 'create']);
+    Route::apiResource('products', ProductController::class)->except(['index', 'show']);
+
+    Route::apiResource('categories', CategoryController::class)->except(['index', 'show']);
+});
+
+
