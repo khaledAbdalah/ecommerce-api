@@ -27,7 +27,7 @@ class Product extends Model
     {
         Storage::delete($this->thumbnail);
     }
-    
+
     public function deleteGallery()
     {
         Storage::delete($this->gallery);
@@ -36,5 +36,10 @@ class Product extends Model
     public function categories()
     {
         return $this->belongsToMany(Category::class);
+    }
+
+    public function cartItems()
+    {
+        return $this->hasMany(Cart::class);
     }
 }
