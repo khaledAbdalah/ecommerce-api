@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class ProductController extends Controller
@@ -14,15 +16,27 @@ class ProductController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index() 
+    public function index()
     {
         return response()->json([
             'success' => true,
             'data' => [
-                'products' => Product::paginate(10)
+                'products' => Product::with('categories')->paginate(10)
             ]
         ]);
     }
+
+    
+    public function create()
+    {
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'categories' => Category::all(['id', 'name']),
+            ]
+        ]);
+    }
+
 
     /**
      * Store a newly created resource in storage.
@@ -42,6 +56,8 @@ class ProductController extends Controller
                 'stock' => 'required|integer|min:0',
                 'status' => 'required|in:published,draft',
                 'featured' => 'required|boolean',
+                'categories' => 'nullable|array',
+                'categories.*' => 'exists:categories,id'
             ]);
 
             // store thumbnail and gallery 
@@ -58,6 +74,12 @@ class ProductController extends Controller
             $validated['gallery'] = $jsonGallery;
 
             $product = Product::create($validated);
+
+            if (!empty($validated['categories'])) {
+                $product->categories()->attach($validated['categories']);
+            }
+
+            $product->load('categories');
 
             return response()->json([
                 'success' => true,
@@ -81,7 +103,7 @@ class ProductController extends Controller
     {
         try {
 
-            if (!$product = Product::find($id)) {
+            if (!$product = Product::with('categories')->find($id)) {
                 throw new ModelNotFoundException('Product not found!');
             }
             return response()->json([
@@ -118,10 +140,13 @@ class ProductController extends Controller
                 'stock' => 'required|integer|min:0',
                 'status' => 'required|in:published,draft',
                 'featured' => 'required|boolean',
+                'categories' => 'nullable|array',
+                'categories.*' => 'exists:categories,id'
             ]);
 
             // store thumbnail and gallery 
             if ($request->hasFile('thumbnail')) {
+                $product->deleteThumbnail();
                 $validated['thumbnail'] = $request->file('thumbnail')->store('products/thumbnails');
             }
 
@@ -135,6 +160,12 @@ class ProductController extends Controller
             }
 
             $product->update($validated);
+
+            if(!empty($validated['categories'])){
+                $product->categories()->sync($validated['categories']);
+            }
+
+            $product->load('categories');
 
             return response()->json([
                 'success' => true,
@@ -175,7 +206,6 @@ class ProductController extends Controller
                 'success' => true,
                 'message' => 'Product deleted successfully'
             ]);
-
         } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,

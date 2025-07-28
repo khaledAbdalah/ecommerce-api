@@ -31,6 +31,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // products routes
 Route::apiResource('products', ProductController::class);
+Route::get('products/create', [ProductController::class, 'create']);
 
 // categories routes
 Route::apiResource('categories', CategoryController::class);
