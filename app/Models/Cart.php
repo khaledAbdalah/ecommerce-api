@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 
 class Cart extends Model
@@ -28,8 +29,8 @@ class Cart extends Model
         return $this->belongsTo(Product::class);
     }
 
-    public function getTotalAttribute()
+    public function total()
     {
-        return $this->price * $this->quantity;
+        return Attribute::make(get: fn() => $this->price * $this->quantity);
     }
 }
