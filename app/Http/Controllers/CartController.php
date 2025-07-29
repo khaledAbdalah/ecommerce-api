@@ -12,20 +12,27 @@ class CartController extends Controller
 {
     public function index(Request $request)
     {
-        $cartItems = Cart::with('product')
+        $items = Cart::with('product')
             ->where('user_id', $request->user()->id)
-            ->join('products', 'products.id', '=', 'carts.product_id')
-            ->selectRaw('carts.*, products.price, (products.price * carts.quantity) as item_total')
             ->get();
 
-        $total = $cartItems->sum('item_total');
+        if ($items->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'items' => []
+                ]
+            ]);
+        }
+
+        $total = $items->sum('item_total');
 
         return response()->json([
             'success' => true,
             'data' => [
-                'items' => $cartItems,
+                'items' => $items,
                 'total' => $total,
-                'items_count' => $cartItems->count()
+                'items_count' => $items->count()
             ]
         ]);
     }
