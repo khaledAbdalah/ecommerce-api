@@ -7,6 +7,7 @@ use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
+use App\Http\Controllers\CartController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ProductController;
 
@@ -40,4 +41,11 @@ Route::middleware(['auth:sanctum', 'isAdmin'])->group(function () {
     Route::apiResource('categories', CategoryController::class)->except(['index', 'show']);
 });
 
+// cart routes 
+Route::middleware('auth:sanctum')->group(function () {
 
+    Route::delete('cart/clear', [CartController::class, 'clear']);
+    Route::get('cart/count', [CartController::class, 'count']);
+
+    Route::apiResource('cart', CartController::class)->except('show');
+});

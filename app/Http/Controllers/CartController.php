@@ -14,9 +14,11 @@ class CartController extends Controller
     {
         $cartItems = Cart::with('product')
             ->where('user_id', $request->user()->id)
+            ->join('products', 'products.id', '=', 'carts.product_id')
+            ->selectRaw('carts.*, products.price, (products.price * carts.quantity) as item_total')
             ->get();
 
-        $total = $cartItems->sum('total');
+        $total = $cartItems->sum('item_total');
 
         return response()->json([
             'success' => true,
