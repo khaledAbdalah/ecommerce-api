@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 class ShippingAddress extends Model
 {
     protected $fillable = [
-        'order_id',
         'user_id',
         'address_line1',
         'address_line2',
@@ -18,13 +17,13 @@ class ShippingAddress extends Model
         'phone',
     ];
 
-    public function order()
-    {
-        return $this->belongsTo(Order::class);
-    }
-
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
     }
 }
