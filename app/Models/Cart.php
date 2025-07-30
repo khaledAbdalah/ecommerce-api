@@ -29,8 +29,10 @@ class Cart extends Model
         return $this->belongsTo(Product::class);
     }
 
-    public function itemTotal()
+    public function total(): Attribute
     {
-        return Attribute::make(get: fn() => $this->product->price * $this->quantity );
+        return Attribute::make(
+            get: fn() => $this->product->price * $this->quantity
+        );
     }
 }
