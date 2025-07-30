@@ -25,7 +25,7 @@ class CartController extends Controller
             ]);
         }
 
-        $total = $items->sum('item_total');
+        $total = $items->sum(fn($item) => $item->total);
 
         return response()->json([
             'success' => true,
