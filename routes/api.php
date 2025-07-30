@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\ProductController;
 
 // auth routes
@@ -48,4 +49,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('cart/count', [CartController::class, 'count']);
 
     Route::apiResource('cart', CartController::class)->except('show');
+
+    // chekcout routes
+    Route::controller(CheckoutController::class)->group(function() {
+        Route::get('checkout/create', 'create');
+        Route::post('checkout/store', 'store');
+    });
 });

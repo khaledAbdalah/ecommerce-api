@@ -87,12 +87,6 @@ class CheckoutController extends Controller
                     'payment_method' => 'Cash On Delivery', // for testing
                 ]
             ]);
-        } catch (ValidationException $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'errors' => $e->errors(),
-            ], 422);
         } catch (EmptyCartException $e) {
             DB::rollBack();
             return response()->json([
