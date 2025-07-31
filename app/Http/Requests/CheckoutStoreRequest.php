@@ -30,10 +30,8 @@ class CheckoutStoreRequest extends FormRequest
             'state'          =>  'required_without:address_id|string|max:20',
             'postal_code'    =>  'required_without:address_id|string|max:10',
             'phone'          =>  'required_without:address_id|phone:AUTO',
-            'payment_method' =>  'required|in:cash,card,wallet',
-            'card_number'    =>  'required_if:payment_method,card|digits:16',
-            'cvc'            =>  'required_if:payment_method,card|digits:3',
-            'expire_date'    =>  'required_if:payment_method,card|date|after:today',
+            'payment_method' =>  'required|in:cash,card',
+            'notes'          =>  'nullable|string',
         ];
     }
 }

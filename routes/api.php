@@ -23,7 +23,7 @@ Route::post('reset-password', ResetPasswordController::class);
 
 Route::post('logout', LogoutController::class)->middleware('auth:sanctum');
 
-// user profile 
+// user profile
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('profile/show', [UserProfileController::class, 'show']);
     Route::put('profile/update', [UserProfileController::class, 'update']);
@@ -42,7 +42,7 @@ Route::middleware(['auth:sanctum', 'isAdmin'])->group(function () {
     Route::apiResource('categories', CategoryController::class)->except(['index', 'show']);
 });
 
-// cart routes 
+// cart routes
 Route::middleware('auth:sanctum')->group(function () {
 
     Route::delete('cart/clear', [CartController::class, 'clear']);
@@ -51,8 +51,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('cart', CartController::class)->except('show');
 
     // chekcout routes
-    Route::controller(CheckoutController::class)->group(function() {
+    Route::controller(CheckoutController::class)->group(function () {
         Route::get('checkout/create', 'create');
         Route::post('checkout/store', 'store');
+        Route::post('checkout/callback', 'paymentCallback');
     });
 });

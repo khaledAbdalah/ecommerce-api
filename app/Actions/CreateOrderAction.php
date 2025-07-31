@@ -12,7 +12,7 @@ class CreateOrderAction
      * @param CheckoutData $dto
      * @param ShippingAddress $address
      * @param int $total
-     * @return Order 
+     * @return Order
      */
     public static function handle(CheckoutData $dto, ShippingAddress $address, int $total): Order
     {
@@ -20,6 +20,7 @@ class CreateOrderAction
             'user_id' => $dto->user->id,
             'shipping_address_id' => $address->id,
             'total' => $total,
+            'notes' => $dto->notes,
         ]);
     }
 }

@@ -16,9 +16,7 @@ class CheckoutData
     public ?string  $postalCode;
     public ?string  $phone;
     public string   $paymentMethod;
-    public ?string  $cardNumber;
-    public ?string  $cvc;
-    public ?string  $expireDate;
+    public ?string  $notes;
 
     private function __construct(User $user, array $data)
     {
@@ -32,9 +30,7 @@ class CheckoutData
         $this->postalCode     = $data['postal_code']    ?? null;
         $this->phone          = $data['phone']          ?? null;
         $this->paymentMethod  = $data['payment_method'];
-        $this->cardNumber     = $data['card_number']    ?? null;
-        $this->cvc            = $data['cvc']            ?? null;
-        $this->expireDate     = $data['expire_date']    ?? null;
+        $this->notes          = $data['notes']          ?? null;
     }
 
     public static function create(User $user, array $validated): self

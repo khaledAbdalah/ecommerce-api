@@ -7,10 +7,11 @@ use App\Exceptions\EmptyCartException;
 use App\Exceptions\LowStockException;
 use App\Http\Requests\CheckoutStoreRequest;
 use App\Models\Cart;
+use App\Models\Payment;
 use App\Services\CheckoutService;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 
 class CheckoutController extends Controller
 {
@@ -66,25 +67,45 @@ class CheckoutController extends Controller
                 throw new EmptyCartException("cart is empty!");
             }
 
-            DB::beginTransaction();
+            // get items total
+            $total = $items->sum(fn($item) => $item->total);
 
-            // create checkout data object instance
+            // create checkout data transfair object instance
             $dto = CheckoutData::create($user, $request->validated());
 
+            DB::beginTransaction();
+
             // run checkout service
-            $handle = CheckoutService::checkout($dto, $items);
+            $handle = CheckoutService::checkout($dto, $items, $total);
 
             DB::commit();
+
+            if ($dto->paymentMethod === 'card') {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Order placed successfully',
+                    'require_payment' => true,
+                    'data' => [
+                        'order'          => $handle['order'],
+                        'items'          => $items,
+                        'total'          => $total,
+                        'address'        => $handle['address'],
+                        'payment'        => $handle['payment'],
+                        'payment_method' => $dto->paymentMethod,
+                    ]
+                ]);
+            }
 
             return response()->json([
                 'success' => true,
                 'message' => 'Order placed successfully',
+                'require_payment' => false,
                 'data' => [
-                    'order' => $handle['order'],
-                    'items' => $items,
-                    'total' => $handle['total'],
-                    'address' => $handle['address'],
-                    'payment_method' => 'Cash On Delivery', // for testing
+                    'order'          => $handle['order'],
+                    'items'          => $items,
+                    'total'          => $total,
+                    'address'        => $handle['address'],
+                    'payment_method' => $dto->paymentMethod,
                 ]
             ]);
         } catch (EmptyCartException $e) {
@@ -105,6 +126,36 @@ class CheckoutController extends Controller
                 'success' => false,
                 'error' => $e->getMessage(),
             ], 400);
+        }
+    }
+
+    public function paymentCallback(Request $request)
+    {
+        try {
+
+            $request->validate([
+                'payment_intent_id' => 'required',
+                'order_id' => 'required',
+            ]);
+
+            $status = CheckoutService::confirmPayment($request);
+
+            if ($status === true) {
+                $pay = Payment::where('order_id', $request->order_id)->update([
+                    'status' => 'paid',
+                ]);
+            }
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'payment' => $status,
+                ]
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 }
