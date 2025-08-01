@@ -10,6 +10,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ShippingAddressController;
 use App\Http\Controllers\UserProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -63,4 +64,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('orders/{order}/cancel', [OrderController::class, 'cancel']);
 
+    // Shipping Address routes
+    Route::apiResource('shipping-addresses', ShippingAddressController::class);
+    Route::get('addresses/user-addresses', [ShippingAddressController::class, 'userAddresses']);
 });
