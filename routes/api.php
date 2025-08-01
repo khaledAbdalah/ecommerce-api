@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Route;
 // auth routes
 Route::middleware('api.guest')->group(function () {
     Route::post('register', RegisterController::class);
-    Route::post('login', LoginController::class);
+    Route::post('login', [LoginController::class, 'login']);
 });
 
 Route::post('forgot-password', ForgotPasswordController::class);

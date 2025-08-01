@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Models\User;
-use Illuminate\Support\Str;
-use Illuminate\Http\Request;
-use Illuminate\Auth\Events\Login;
-use Illuminate\Auth\Events\Lockout;
-use Illuminate\Support\Facades\Log;
+use App\Actions\HandleErrorLoggingAction;
 use App\Http\Controllers\Controller;
+use Exception;
+use Illuminate\Auth\Events\Lockout;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Concurrency;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class LoginController extends Controller
@@ -18,15 +18,9 @@ class LoginController extends Controller
     /**
      * Handle the incoming request.
      */
-    public function __invoke(Request $request)
+    public function login (Request $request)
     {
-
-        if (Auth::guard('sanctum')->check()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You are already authenticated.',
-            ], 403);
-        }
+        $this->isLoggedIn();
 
         try {
 
@@ -35,25 +29,10 @@ class LoginController extends Controller
                 'password' => 'required',
             ]);
 
-            $throttleKey = Str::transliterate(Str::lower($request->email) . '|' . $request->ip());
+            $this->ensureIsNotRateLimited($request);
 
-            if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
-
-                event(new Lockout(request()));
-
-                $seconds = RateLimiter::availableIn($throttleKey);
-
-                throw ValidationException::withMessages([
-                    'email' => __('auth.throttle', [
-                        'seconds' => $seconds,
-                        'minutes' => ceil($seconds / 60),
-                    ]),
-                ]);
-            }
-
-
-            if (!Auth::attempt($validated)) {
-                RateLimiter::hit($throttleKey);
+            if ( !Auth::attempt($validated) ) {
+                RateLimiter::hit($this->throttleKey($request));
                 throw ValidationException::withMessages([
                     'email' => __('auth.failed')
                 ]);
@@ -61,7 +40,7 @@ class LoginController extends Controller
 
             $user = Auth::user();
 
-            RateLimiter::clear($throttleKey);
+            RateLimiter::clear($this->throttleKey($request));
 
             $token = $user->createToken('token')->plainTextToken;
 
@@ -73,25 +52,58 @@ class LoginController extends Controller
                     'token' => $token,
                 ]
             ]);
-        } catch (ValidationException $e) {
+        } catch ( ValidationException $e ) {
             return response()->json([
                 'success' => false,
-                'message' => 'Validation failed',
                 'errors' => $e->errors(),
             ], 422);
-        } catch (\Exception $e) {
-            Log::error('User registration failed', [
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString(),
-                'request_data' => $request->except('password')
-            ]);
+        } catch ( Exception $e ) {
+            $message = 'Failed to login!, please try again.';
+
+            // run concurrency
+            Concurrency::defer(function () use ($e, $message, $request) {
+                HandleErrorLoggingAction::handle($e, $message, [
+                    'data' => $request->except('password'),
+                    'ip' => $request->ip(),
+                    'agent' => $request->userAgent(),
+                ]);
+            });
             return response()->json([
                 'success' => false,
-                'message' => 'Registration failed!',
-                'error' => 'Something went wrong, please try again.'
+                'error' => $message,
             ], 500);
         }
+    }
+
+    protected function isLoggedIn ()
+    {
+        if ( Auth::guard('sanctum')->check() ) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are already authenticated.',
+            ], 403);
+        }
+    }
+
+    protected function ensureIsNotRateLimited (Request $request)
+    {
+        if ( RateLimiter::tooManyAttempts($this->throttleKey($request), 5) ) {
+
+            event(new Lockout(request()));
+
+            $seconds = RateLimiter::availableIn($this->throttleKey($request));
+
+            throw ValidationException::withMessages([
+                'email' => __('auth.throttle', [
+                    'seconds' => $seconds,
+                    'minutes' => ceil($seconds / 60),
+                ]),
+            ]);
+        }
+    }
+
+    protected function throttleKey (Request $request): string
+    {
+        return Str::transliterate(Str::lower($request->email) . '|' . $request->ip());
     }
 }
