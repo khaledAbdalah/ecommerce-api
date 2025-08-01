@@ -6,6 +6,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -22,11 +23,30 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (ValidationException $e, $request) {
-            if ($request->wantsJson()) {
+            if ( $request->wantsJson() ) {
                 return response()->json([
                     'success' => false,
                     'errors' => $e->errors()
                 ], 422);
             }
         });
+
+        $exceptions->render(function (NotFoundHttpException $e, $request) {
+            if ( $request->wantsJson() ) {
+                $previous = $e->getPrevious();
+                if ( $previous instanceof ValidationException ) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Model not found'
+                    ], 404);
+                }
+
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Not found',
+                ], 404);
+            }
+
+        });
+
     })->create();

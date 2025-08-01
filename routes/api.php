@@ -1,16 +1,17 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
-use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\Auth\RegisterController;
-use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\UserProfileController;
+use Illuminate\Support\Facades\Route;
 
 // auth routes
 Route::middleware('api.guest')->group(function () {
@@ -36,7 +37,7 @@ Route::apiResource('products', ProductController::class)->only(['index', 'show']
 Route::apiResource('categories', CategoryController::class)->only(['index', 'show']);
 
 Route::middleware(['auth:sanctum', 'isAdmin'])->group(function () {
-    Route::get('products/create',  [ProductController::class, 'create']);
+    Route::get('products/create', [ProductController::class, 'create']);
     Route::apiResource('products', ProductController::class)->except(['index', 'show']);
 
     Route::apiResource('categories', CategoryController::class)->except(['index', 'show']);
@@ -56,4 +57,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('checkout/store', 'store');
         Route::post('checkout/callback', 'paymentCallback');
     });
+
+    // orders routes
+    Route::apiResource('orders', OrderController::class)->except('store');
+
+    Route::get('orders/{order}/cancel', [OrderController::class, 'cancel']);
+
 });
