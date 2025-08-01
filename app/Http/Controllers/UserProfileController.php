@@ -2,24 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\HandleErrorLoggingAction;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Concurrency;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class UserProfileController extends Controller
 {
-    public function show(Request $request)
+    public function show (Request $request)
     {
         return response()->json([
+            'success' => true,
             'data' => [
                 'user' => $request->user(),
             ]
         ]);
     }
 
-    public function update(Request $request)
+    public function update (Request $request)
     {
         try {
 
@@ -29,39 +33,48 @@ class UserProfileController extends Controller
                 'email' => ['required', 'email:dns', Rule::unique(User::class)->ignore($user->id)]
             ]);
 
-            $user->name = $validated['name'];
-            $user->email = $validated['email'];
-            $user->save();
+            $user->fill($validated)->save();
+            $user = $user->fresh();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Data updated successfully',
                 'data' => [
-                    'user' => $user->fresh(),
+                    'user' => $user,
                 ]
             ]);
-        } catch (ValidationException $e) {
+        } catch ( ValidationException $e ) {
             return response()->json([
                 'success' => false,
                 'errors' => $e->errors(),
             ], 422);
+        } catch ( Throwable $e ) {
+            $message = 'Internal Server Error';
+            Concurrency::defer(function () use ($e, $message) {
+                HandleErrorLoggingAction::handle($e, $message);
+            });
+
+            return response()->json([
+                'success' => false,
+                'error' => $message,
+            ], 500);
         }
     }
 
-    public function updatePassword(Request $request)
+    public function updatePassword (Request $request)
     {
         try {
 
             $user = $request->user();
             $validated = $request->validate([
-                'old_password' => 'required',
+                'current_password' => 'required',
                 'new_password' => 'required|confirmed|min:8'
             ]);
 
             // check if old password is correct 
-            if (!Hash::check($request->old_password, $user->password)) {
+            if ( !Hash::check($request->current_password, $user->password) ) {
                 throw ValidationException::withMessages([
-                    'old_password' => ['Incorrect old password'],
+                    'current_password' => ['Incorrect old password'],
                 ]);
             }
 
@@ -72,15 +85,25 @@ class UserProfileController extends Controller
                 'success' => true,
                 'message' => 'Password updated successfully',
             ]);
-        } catch (ValidationException $e) {
+        } catch ( ValidationException $e ) {
             return response()->json([
                 'success' => false,
                 'errors' => $e->errors(),
             ], 422);
+        } catch ( Throwable $e ) {
+            $message = 'Internal Server Error';
+            Concurrency::defer(function () use ($e, $message) {
+                HandleErrorLoggingAction::handle($e, $message);
+            });
+
+            return response()->json([
+                'success' => false,
+                'error' => $message,
+            ], 500);
         }
     }
 
-    public function destroy(Request $request)
+    public function destroy (Request $request)
     {
         try {
 
@@ -89,7 +112,7 @@ class UserProfileController extends Controller
                 'password' => 'required',
             ]);
 
-            if (!Hash::check($request->password, $user->password)) {
+            if ( !Hash::check($request->password, $user->password) ) {
                 throw ValidationException::withMessages([
                     'password' => ['Incorrect password.'],
                 ]);
@@ -102,11 +125,21 @@ class UserProfileController extends Controller
                 'success' => true,
                 'message' => 'Your account has been deleted successfully'
             ]);
-        } catch (ValidationException $e) {
+        } catch ( ValidationException $e ) {
             return response()->json([
                 'success' => false,
                 'errors' => $e->errors(),
             ], 422);
+        } catch ( Throwable $e ) {
+            $message = 'Internal Server Error';
+            Concurrency::defer(function () use ($e, $message) {
+                HandleErrorLoggingAction::handle($e, $message);
+            });
+
+            return response()->json([
+                'success' => false,
+                'error' => $message,
+            ], 500);
         }
     }
 }

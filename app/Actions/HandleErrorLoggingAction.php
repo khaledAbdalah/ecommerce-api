@@ -15,7 +15,7 @@ class HandleErrorLoggingAction
      * @param array|null $data
      * @return void
      */
-    public static function handle (Throwable $exception, string $message, array|null $data): void
+    public static function handle (Throwable $exception, string $message, array|null $data = null): void
     {
         $context = [
             'message' => $exception->getMessage(),
