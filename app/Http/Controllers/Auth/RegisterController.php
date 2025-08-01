@@ -2,27 +2,24 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use App\Actions\HandleErrorLoggingAction;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Hash;
+use App\Http\Requests\UserRegisterRequest;
+use App\Models\User;
+use Exception;
 use Illuminate\Auth\Events\Registered;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Concurrency;
+use Illuminate\Support\Facades\Hash;
 
 class RegisterController extends Controller
 {
     /**
      * Handle the incoming request.
      */
-    public function __invoke(Request $request)
+    public function __invoke (UserRegisterRequest $request)
     {
         try {
-            $validated = $request->validate([
-                'name' => 'required|string|max:255',
-                'email' => 'required|email|unique:users,email',
-                'password' => 'required|confirmed|min:8',
-            ]);
+            $validated = $request->validated();
 
             $validated['password'] = Hash::make($validated['password']);
 
@@ -40,24 +37,22 @@ class RegisterController extends Controller
                     'token' => $token,
                 ],
             ], 201);
-        } catch (ValidationException $e) {
+
+        } catch ( Exception $e ) {
+            $message = 'Registration failed!, please try again.';
+
+            // run concurrency
+            Concurrency::defer(function () use ($e, $message, $request) {
+                HandleErrorLoggingAction::handle($e, $message, [
+                    'data' => $request->except('password'),
+                    'ip' => $request->ip(),
+                    'agent' => $request->userAgent(),
+                ]);
+            });
+
             return response()->json([
                 'success' => false,
-                'message' => 'Validation Failed',
-                'errors' => $e->errors(),
-            ], 422);
-        } catch (\Exception $e) {
-            Log::error('User registration failed', [
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString(),
-                'request_data' => $request->except('password')
-            ]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Registration failed!',
-                'error' => 'Something went wrong, please try again.'
+                'error' => $message,
             ], 500);
         }
     }

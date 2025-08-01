@@ -47,12 +47,11 @@ Route::middleware(['auth:sanctum', 'isAdmin'])->group(function () {
 // cart routes
 Route::middleware('auth:sanctum')->group(function () {
 
+    Route::apiResource('cart', CartController::class)->except('show');
     Route::delete('cart/clear', [CartController::class, 'clear']);
     Route::get('cart/count', [CartController::class, 'count']);
 
-    Route::apiResource('cart', CartController::class)->except('show');
-
-    // chekcout routes
+    // checkout routes
     Route::controller(CheckoutController::class)->group(function () {
         Route::get('checkout/create', 'create');
         Route::post('checkout/store', 'store');
@@ -62,7 +61,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // orders routes
     Route::apiResource('orders', OrderController::class)->except('store');
 
-    Route::get('orders/{order}/cancel', [OrderController::class, 'cancel']);
+    Route::patch('orders/{order}/cancel', [OrderController::class, 'cancel']);
 
     // Shipping Address routes
     Route::apiResource('shipping-addresses', ShippingAddressController::class);
