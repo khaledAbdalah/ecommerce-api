@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Auth;
 
 use App\Actions\HandleErrorLoggingAction;
 use App\Http\Controllers\Controller;
-use Exception;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -12,6 +11,7 @@ use Illuminate\Support\Facades\Concurrency;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class LoginController extends Controller
 {
@@ -57,7 +57,7 @@ class LoginController extends Controller
                 'success' => false,
                 'errors' => $e->errors(),
             ], 422);
-        } catch ( Exception $e ) {
+        } catch ( Throwable $e ) {
             $message = 'Failed to login!, please try again.';
 
             // run concurrency

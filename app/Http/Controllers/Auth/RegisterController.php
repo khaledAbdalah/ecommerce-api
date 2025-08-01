@@ -6,10 +6,10 @@ use App\Actions\HandleErrorLoggingAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UserRegisterRequest;
 use App\Models\User;
-use Exception;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Concurrency;
 use Illuminate\Support\Facades\Hash;
+use Throwable;
 
 class RegisterController extends Controller
 {
@@ -38,7 +38,7 @@ class RegisterController extends Controller
                 ],
             ], 201);
 
-        } catch ( Exception $e ) {
+        } catch ( Throwable $e ) {
             $message = 'Registration failed!, please try again.';
 
             // run concurrency

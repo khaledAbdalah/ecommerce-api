@@ -2,17 +2,20 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Actions\HandleErrorLoggingAction;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Concurrency;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class ResetPasswordController extends Controller
 {
-    public function __invoke(Request $request)
+    public function __invoke (Request $request)
     {
         try {
 
@@ -26,15 +29,15 @@ class ResetPasswordController extends Controller
 
             $tokenData = DB::table('password_reset_tokens')->where('email', $validated['email'])->first();
 
-            if (!$tokenData) {
+            if ( !$tokenData ) {
                 throw ValidationException::withMessages([
                     'email' => ['There are not token assign to this email']
                 ]);
-            } elseif ($tokenData->token !== $validated['token']) {
+            } elseif ( $tokenData->token !== $validated['token'] ) {
                 throw ValidationException::withMessages([
                     'token' => ['Token not matching']
                 ]);
-            } elseif ($tokenData->created_at < now()->subMinutes(60)) {
+            } elseif ( $tokenData->created_at < now()->subMinutes(60) ) {
                 throw ValidationException::withMessages([
                     'token' => ['Token is expired']
                 ]);
@@ -51,11 +54,21 @@ class ResetPasswordController extends Controller
                 'success' => true,
                 'message' => 'Password reset Successfully!',
             ]);
-        } catch (ValidationException $e) {
+        } catch ( ValidationException $e ) {
             return response()->json([
                 'success' => false,
                 'errors' => $e->errors()
             ], 422);
+        } catch ( Throwable $e ) {
+            $message = 'Internal Server Error';
+            Concurrency::defer(function () use ($e, $message) {
+                HandleErrorLoggingAction::handle($e, $message);
+            });
+
+            return response()->json([
+                'success' => false,
+                'error' => $message,
+            ], 500);
         }
     }
 }

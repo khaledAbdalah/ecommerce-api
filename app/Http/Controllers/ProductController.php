@@ -2,84 +2,71 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\HandleErrorLoggingAction;
+use App\Http\Requests\ProductStoreRequest;
+use App\Http\Requests\ProductUpdateRequest;
 use App\Models\Category;
 use App\Models\Product;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Http\Request;
-use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
+use App\Services\ProductService;
+use Illuminate\Support\Facades\Concurrency;
+use Throwable;
 
 class ProductController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index ()
     {
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'products' => Product::with('categories')->paginate(10)
-            ]
-        ]);
+        try {
+            $products = Product::with('categories')->paginate(10);
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'products' => $products
+                ]
+            ]);
+        } catch ( Throwable $e ) {
+            $message = 'Internal Server Error';
+            Concurrency::defer(function () use ($e, $message) {
+                HandleErrorLoggingAction::handle($e, $message);
+            });
+
+            return response()->json([
+                'success' => false,
+                'error' => $message,
+            ], 500);
+        }
+
     }
 
-    
-    public function create()
+    public function create ()
     {
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'categories' => Category::all(['id', 'name']),
-            ]
-        ]);
+       try {
+           $categories = Category::all(['id', 'name']);
+           return response()->json([
+               'success' => true,
+               'data' => [
+                   'categories' => $categories,
+               ]
+           ]);
+       } catch ( Throwable $e ) {
+           $message = 'Internal Server Error';
+           Concurrency::defer(function () use ($e, $message) {
+               HandleErrorLoggingAction::handle($e, $message);
+           });
+
+           return response()->json([
+               'success' => false,
+               'error' => $message,
+           ], 500);
+       }
     }
 
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function store (ProductStoreRequest $request, ProductService $service)
     {
         try {
 
-            $validated =  $request->validate([
-                'name' => 'required|string|max:255',
-                'short_description' => 'required|string',
-                'description' => 'required|string',
-                'thumbnail' => 'required|image|mimes:png,jpg,jpeg,webp',
-                'gallery' => 'required|array|min:4',
-                'gallery.*' => 'image|mimes:png,jpg,jpeg,webp',
-                'price' => 'required|numeric|min:0',
-                'stock' => 'required|integer|min:0',
-                'status' => 'required|in:published,draft',
-                'featured' => 'required|boolean',
-                'categories' => 'nullable|array',
-                'categories.*' => 'exists:categories,id'
-            ]);
-
-            // store thumbnail and gallery 
-            $thumbnail = $request->thumbnail->store('products/thumbnails');
-
-            $gallery = [];
-            foreach ($request->gallery as $image) {
-                $gallery[] = $image->store('products/galleries');
-            }
-
-            $jsonGallery = json_encode($gallery);
-
-            $validated['thumbnail'] = $thumbnail;
-            $validated['gallery'] = $jsonGallery;
-
-            $product = Product::create($validated);
-
-            if (!empty($validated['categories'])) {
-                $product->categories()->attach($validated['categories']);
-            }
-
-            $product->load('categories');
+            $validated = $request->validated();
+            $product = $service->create($request, $validated);
 
             return response()->json([
                 'success' => true,
@@ -88,84 +75,47 @@ class ProductController extends Controller
                     'product' => $product,
                 ]
             ], 201);
-        } catch (ValidationException $e) {
+        } catch ( Throwable $e ) {
+            $message = 'Internal Server Error';
+            Concurrency::defer(function () use ($e, $message) {
+                HandleErrorLoggingAction::handle($e, $message);
+            });
+
             return response()->json([
                 'success' => false,
-                'errors' => $e->errors(),
-            ], 422);
+                'error' => $message,
+            ], 500);
         }
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show($id)
+    public function show (Product $product)
     {
         try {
-
-            if (!$product = Product::with('categories')->find($id)) {
-                throw new ModelNotFoundException('Product not found!');
-            }
+            $product->load('categories');
             return response()->json([
                 'success' => true,
                 'data' => [
                     'product' => $product,
                 ]
             ]);
-        } catch (ModelNotFoundException $e) {
+        } catch ( Throwable $e ) {
+            $message = 'Internal Server Error';
+            Concurrency::defer(function () use ($e, $message) {
+                HandleErrorLoggingAction::handle($e, $message);
+            });
+
             return response()->json([
                 'success' => false,
-                'error' => $e->getMessage(),
-            ], 404);
+                'error' => $message,
+            ], 500);
         }
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $id)
+    public function update (ProductUpdateRequest $request, Product $product, ProductService $service)
     {
         try {
-
-            if (!$product = Product::find($id)) throw new ModelNotFoundException('Product not found');
-
-            $validated =  $request->validate([
-                'name' => 'required|string|max:255',
-                'short_description' => 'required|string',
-                'description' => 'required|string',
-                'thumbnail' => 'nullable|image|mimes:png,jpg,jpeg,webp',
-                'gallery' => 'nullable|array',
-                'gallery.*' => 'image|mimes:png,jpg,jpeg,webp',
-                'price' => 'required|numeric|min:0',
-                'stock' => 'required|integer|min:0',
-                'status' => 'required|in:published,draft',
-                'featured' => 'required|boolean',
-                'categories' => 'nullable|array',
-                'categories.*' => 'exists:categories,id'
-            ]);
-
-            // store thumbnail and gallery 
-            if ($request->hasFile('thumbnail')) {
-                $product->deleteThumbnail();
-                $validated['thumbnail'] = $request->file('thumbnail')->store('products/thumbnails');
-            }
-
-            if ($request->hasFile('gallery') && is_array($request->file('gallery'))) {
-                $gallery = [];
-                foreach ($request->file('gallery') as $image) {
-                    $gallery[] = $image->store('products/galleries');
-                }
-
-                $validated['gallery'] = json_encode($gallery);
-            }
-
-            $product->update($validated);
-
-            if(!empty($validated['categories'])){
-                $product->categories()->sync($validated['categories']);
-            }
-
-            $product->load('categories');
+            $validated = $request->validated();
+            $product = $service->update($request, $validated, $product );
 
             return response()->json([
                 'success' => true,
@@ -174,52 +124,39 @@ class ProductController extends Controller
                     'product' => $product,
                 ]
             ]);
-        } catch (ValidationException $e) {
+        } catch ( Throwable $e ) {
+            $message = 'Internal Server Error';
+            Concurrency::defer(function () use ($e, $message) {
+                HandleErrorLoggingAction::handle($e, $message);
+            });
+
             return response()->json([
                 'success' => false,
-                'errors' => $e->errors(),
-            ], 422);
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage(),
-            ], 404);
+                'error' => $message,
+            ], 500);
         }
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id)
+
+    public function destroy (Product $product, ProductService $service)
     {
         try {
-
-            if (!$product = Product::find($id)) throw new ModelNotFoundException('Product not found');
-
-            $product->deleteThumbnail();
-
-            $product->deleteGallery();
-
-            $product->delete();
-
+            $this->authorize('delete', $product);
+            $service->delete($product);
             return response()->json([
                 'success' => true,
                 'message' => 'Product deleted successfully'
             ]);
-        } catch (ModelNotFoundException $e) {
+
+        } catch ( Throwable $e ) {
+            $message = 'Internal Server Error';
+            Concurrency::defer(function () use ($e, $message) {
+                HandleErrorLoggingAction::handle($e, $message);
+            });
+
             return response()->json([
                 'success' => false,
-                'error' => $e->getMessage(),
-            ], 404);
-        } catch (\Exception $e) {
-            Log::error('Internal Server Error', [
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-            ]);
-            return response()->json([
-                'success' => false,
-                'error' => 'Internal server error'
+                'error' => $message,
             ], 500);
         }
     }

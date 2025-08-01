@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Actions\HandleErrorLoggingAction;
 use App\Events\PasswordResetTokenEvent;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Concurrency;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class ForgotPasswordController extends Controller
 {
@@ -41,6 +44,16 @@ class ForgotPasswordController extends Controller
                 'success' => false,
                 'errors' => $e->errors(),
             ], 422);
+        } catch ( Throwable $e ) {
+            $message = 'Internal Server Error';
+            Concurrency::defer(function () use ($e, $message) {
+                HandleErrorLoggingAction::handle($e, $message);
+            });
+
+            return response()->json([
+                'success' => false,
+                'error' => $message,
+            ], 500);
         }
     }
 }
