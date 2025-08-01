@@ -2,16 +2,16 @@
 
 namespace App\Http\Controllers\Auth;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
+use Exception;
+use Illuminate\Http\Request;
 
 class LogoutController extends Controller
 {
     /**
      * Handle the incoming request.
      */
-    public function __invoke(Request $request)
+    public function __invoke (Request $request)
     {
         try {
             $request->user()->currentAccessToken()->delete();
@@ -19,17 +19,9 @@ class LogoutController extends Controller
                 'success' => true,
                 'message' => 'You are logged out successfully.'
             ]);
-        } catch (\Exception $e) {
-            Log::error('Logout Failed', [
-                'user_id' => $request->user()->id,
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString(),
-            ]);
+        } catch ( Exception $e ) {
             return response()->json([
                 'success' => false,
-                'message' => 'Logout failed.',
                 'error' => 'Something went wrong, please try again.'
             ], 500);
         }
