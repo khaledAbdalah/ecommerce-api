@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\DTOs\CheckoutData;
+use App\Events\OrderPlacedEvent;
 use App\Exceptions\EmptyCartException;
 use App\Exceptions\LowStockException;
 use App\Http\Requests\CheckoutStoreRequest;
@@ -15,21 +16,20 @@ use Illuminate\Support\Facades\DB;
 
 class CheckoutController extends Controller
 {
-    public function create(Request $request)
+    public function create (Request $request)
     {
         try {
             $items = Cart::with('product')
                 ->where('user_id', $request->user()->id)
                 ->get();
 
-            if ($items->isEmpty()) throw new EmptyCartException('Cart is empty');
+            if ( $items->isEmpty() ) throw new EmptyCartException('Cart is empty');
 
-
-            $total = $items->sum(fn($item) => $item->total);
+            $total = $items->sum(fn ($item) => $item->total);
 
             $addresses = $request->user()->addresses;
 
-            if ($addresses->isEmpty()) {
+            if ( $addresses->isEmpty() ) {
                 $addresses = [];
             }
 
@@ -41,7 +41,7 @@ class CheckoutController extends Controller
                     'addresses' => $addresses,
                 ],
             ]);
-        } catch (EmptyCartException $e) {
+        } catch ( EmptyCartException $e ) {
             return response()->json([
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -49,8 +49,7 @@ class CheckoutController extends Controller
         }
     }
 
-
-    public function store(CheckoutStoreRequest $request)
+    public function store (CheckoutStoreRequest $request)
     {
         try {
 
@@ -63,12 +62,12 @@ class CheckoutController extends Controller
                 ->get();
 
             // throw exception if cart is empty
-            if ($items->isEmpty()) {
+            if ( $items->isEmpty() ) {
                 throw new EmptyCartException("cart is empty!");
             }
 
             // get items total
-            $total = $items->sum(fn($item) => $item->total);
+            $total = $items->sum(fn ($item) => $item->total);
 
             // create checkout data transfair object instance
             $dto = CheckoutData::create($user, $request->validated());
@@ -80,17 +79,19 @@ class CheckoutController extends Controller
 
             DB::commit();
 
-            if ($dto->paymentMethod === 'card') {
+            event(new OrderPlacedEvent($handle['order']));
+
+            if ( $dto->paymentMethod === 'card' ) {
                 return response()->json([
                     'success' => true,
                     'message' => 'Order placed successfully',
                     'require_payment' => true,
                     'data' => [
-                        'order'          => $handle['order'],
-                        'items'          => $items,
-                        'total'          => $total,
-                        'address'        => $handle['address'],
-                        'payment'        => $handle['payment'],
+                        'order' => $handle['order'],
+                        'items' => $items,
+                        'total' => $total,
+                        'address' => $handle['address'],
+                        'payment' => $handle['payment'],
                         'payment_method' => $dto->paymentMethod,
                     ]
                 ]);
@@ -101,26 +102,26 @@ class CheckoutController extends Controller
                 'message' => 'Order placed successfully',
                 'require_payment' => false,
                 'data' => [
-                    'order'          => $handle['order'],
-                    'items'          => $items,
-                    'total'          => $total,
-                    'address'        => $handle['address'],
+                    'order' => $handle['order'],
+                    'items' => $items,
+                    'total' => $total,
+                    'address' => $handle['address'],
                     'payment_method' => $dto->paymentMethod,
                 ]
             ]);
-        } catch (EmptyCartException $e) {
+        } catch ( EmptyCartException $e ) {
             DB::rollBack();
             return response()->json([
                 'success' => false,
                 'error' => $e->getMessage(),
             ], 400);
-        } catch (LowStockException $e) {
+        } catch ( LowStockException $e ) {
             DB::rollBack();
             return response()->json([
                 'success' => false,
                 'error' => $e->getMessage()
             ], 400);
-        } catch (\Exception $e) {
+        } catch ( Exception $e ) {
             DB::rollBack();
             return response()->json([
                 'success' => false,
@@ -129,7 +130,7 @@ class CheckoutController extends Controller
         }
     }
 
-    public function paymentCallback(Request $request)
+    public function paymentCallback (Request $request)
     {
         try {
 
@@ -140,7 +141,7 @@ class CheckoutController extends Controller
 
             $status = CheckoutService::confirmPayment($request);
 
-            if ($status === true) {
+            if ( $status === true ) {
                 $pay = Payment::where('order_id', $request->order_id)->update([
                     'status' => 'paid',
                 ]);
@@ -151,7 +152,7 @@ class CheckoutController extends Controller
                     'payment' => $status,
                 ]
             ]);
-        } catch (Exception $e) {
+        } catch ( Exception $e ) {
             return response()->json([
                 'success' => false,
                 'error' => $e->getMessage(),
