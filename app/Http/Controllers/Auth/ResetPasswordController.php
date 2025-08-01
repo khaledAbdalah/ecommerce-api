@@ -2,12 +2,10 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Actions\HandleErrorLoggingAction;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Concurrency;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -60,15 +58,7 @@ class ResetPasswordController extends Controller
                 'errors' => $e->errors()
             ], 422);
         } catch ( Throwable $e ) {
-            $message = 'Internal Server Error';
-            Concurrency::defer(function () use ($e, $message) {
-                HandleErrorLoggingAction::handle($e, $message);
-            });
-
-            return response()->json([
-                'success' => false,
-                'error' => $message,
-            ], 500);
+            return response()->unexpectedError($e);
         }
     }
 }

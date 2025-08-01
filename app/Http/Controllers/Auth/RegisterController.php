@@ -2,12 +2,10 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Actions\HandleErrorLoggingAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UserRegisterRequest;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
-use Illuminate\Support\Facades\Concurrency;
 use Illuminate\Support\Facades\Hash;
 use Throwable;
 
@@ -40,20 +38,11 @@ class RegisterController extends Controller
 
         } catch ( Throwable $e ) {
             $message = 'Registration failed!, please try again.';
-
-            // run concurrency
-            Concurrency::defer(function () use ($e, $message, $request) {
-                HandleErrorLoggingAction::handle($e, $message, [
-                    'data' => $request->except('password'),
-                    'ip' => $request->ip(),
-                    'agent' => $request->userAgent(),
-                ]);
-            });
-
-            return response()->json([
-                'success' => false,
-                'error' => $message,
-            ], 500);
+            return response()->unexpectedError($e, $message, [
+                'data' => $request->except('password'),
+                'ip' => $request->ip(),
+                'agent' => $request->userAgent(),
+            ]);
         }
     }
 }

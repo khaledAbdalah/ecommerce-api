@@ -2,12 +2,10 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Actions\HandleErrorLoggingAction;
 use App\Http\Controllers\Controller;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Concurrency;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -59,19 +57,11 @@ class LoginController extends Controller
             ], 422);
         } catch ( Throwable $e ) {
             $message = 'Failed to login!, please try again.';
-
-            // run concurrency
-            Concurrency::defer(function () use ($e, $message, $request) {
-                HandleErrorLoggingAction::handle($e, $message, [
-                    'data' => $request->except('password'),
-                    'ip' => $request->ip(),
-                    'agent' => $request->userAgent(),
-                ]);
-            });
-            return response()->json([
-                'success' => false,
-                'error' => $message,
-            ], 500);
+            return response()->unexpectedError($e, $message, [
+                'data' => $request->except('password'),
+                'ip' => $request->ip(),
+                'agent' => $request->userAgent(),
+            ]);
         }
     }
 

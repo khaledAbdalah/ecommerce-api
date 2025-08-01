@@ -2,10 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Actions\HandleErrorLoggingAction;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Concurrency;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -15,12 +13,17 @@ class UserProfileController extends Controller
 {
     public function show (Request $request)
     {
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'user' => $request->user(),
-            ]
-        ]);
+        try {
+            $user = $request->user();
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'user' => $user,
+                ]
+            ]);
+        } catch (Throwable $e) {
+            return response()->unexpectedError($e);
+        }
     }
 
     public function update (Request $request)
@@ -49,15 +52,7 @@ class UserProfileController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch ( Throwable $e ) {
-            $message = 'Internal Server Error';
-            Concurrency::defer(function () use ($e, $message) {
-                HandleErrorLoggingAction::handle($e, $message);
-            });
-
-            return response()->json([
-                'success' => false,
-                'error' => $message,
-            ], 500);
+            return response()->unexpectedError($e);
         }
     }
 
@@ -91,15 +86,7 @@ class UserProfileController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch ( Throwable $e ) {
-            $message = 'Internal Server Error';
-            Concurrency::defer(function () use ($e, $message) {
-                HandleErrorLoggingAction::handle($e, $message);
-            });
-
-            return response()->json([
-                'success' => false,
-                'error' => $message,
-            ], 500);
+           return response()->unexpectedError($e);
         }
     }
 
@@ -131,15 +118,7 @@ class UserProfileController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch ( Throwable $e ) {
-            $message = 'Internal Server Error';
-            Concurrency::defer(function () use ($e, $message) {
-                HandleErrorLoggingAction::handle($e, $message);
-            });
-
-            return response()->json([
-                'success' => false,
-                'error' => $message,
-            ], 500);
+           return response()->unexpectedError($e);
         }
     }
 }
