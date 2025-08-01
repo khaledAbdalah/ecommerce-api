@@ -27,10 +27,10 @@ Route::post('logout', LogoutController::class)->middleware('auth:sanctum');
 
 // user profile
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('profile/show', [UserProfileController::class, 'show']);
-    Route::put('profile/update', [UserProfileController::class, 'update']);
-    Route::put('profile/update/password', [UserProfileController::class, 'updatePassword']);
-    Route::delete('profile/delete', [UserProfileController::class, 'destroy']);
+    Route::get('profile', [UserProfileController::class, 'show']);
+    Route::put('profile', [UserProfileController::class, 'update']);
+    Route::put('profile/password', [UserProfileController::class, 'updatePassword']);
+    Route::delete('profile', [UserProfileController::class, 'destroy']);
 });
 
 // products routes and categories
