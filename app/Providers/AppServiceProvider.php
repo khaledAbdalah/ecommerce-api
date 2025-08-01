@@ -2,7 +2,11 @@
 
 namespace App\Providers;
 
+use App\Actions\HandleErrorLoggingAction;
+use Illuminate\Support\Facades\Concurrency;
+use Illuminate\Support\Facades\Response;
 use Illuminate\Support\ServiceProvider;
+use Throwable;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,6 +23,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Response::macro('unexpectedError', function (Throwable $e, string $message = 'Internal Server Error', array|null $data = null) {
+            Concurrency::defer(fn() => HandleErrorLoggingAction::handle($e, $message, $data));
+            
+            return response()->json([
+                'success' => false,
+                'error' => $message,
+            ], 500);
+        });
     }
 }

@@ -2,13 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Actions\HandleErrorLoggingAction;
 use App\Http\Requests\ProductStoreRequest;
 use App\Http\Requests\ProductUpdateRequest;
 use App\Models\Category;
 use App\Models\Product;
 use App\Services\ProductService;
-use Illuminate\Support\Facades\Concurrency;
 use Throwable;
 
 class ProductController extends Controller
@@ -24,15 +22,7 @@ class ProductController extends Controller
                 ]
             ]);
         } catch ( Throwable $e ) {
-            $message = 'Internal Server Error';
-            Concurrency::defer(function () use ($e, $message) {
-                HandleErrorLoggingAction::handle($e, $message);
-            });
-
-            return response()->json([
-                'success' => false,
-                'error' => $message,
-            ], 500);
+           return response()->unexpectedError($e);
         }
 
     }
@@ -48,15 +38,7 @@ class ProductController extends Controller
                ]
            ]);
        } catch ( Throwable $e ) {
-           $message = 'Internal Server Error';
-           Concurrency::defer(function () use ($e, $message) {
-               HandleErrorLoggingAction::handle($e, $message);
-           });
-
-           return response()->json([
-               'success' => false,
-               'error' => $message,
-           ], 500);
+           return response()->unexpectedError($e);
        }
     }
 
@@ -76,15 +58,7 @@ class ProductController extends Controller
                 ]
             ], 201);
         } catch ( Throwable $e ) {
-            $message = 'Internal Server Error';
-            Concurrency::defer(function () use ($e, $message) {
-                HandleErrorLoggingAction::handle($e, $message);
-            });
-
-            return response()->json([
-                'success' => false,
-                'error' => $message,
-            ], 500);
+            return response()->unexpectedError($e);
         }
     }
 
@@ -99,15 +73,7 @@ class ProductController extends Controller
                 ]
             ]);
         } catch ( Throwable $e ) {
-            $message = 'Internal Server Error';
-            Concurrency::defer(function () use ($e, $message) {
-                HandleErrorLoggingAction::handle($e, $message);
-            });
-
-            return response()->json([
-                'success' => false,
-                'error' => $message,
-            ], 500);
+            return response()->unexpectedError($e);
         }
     }
 
@@ -125,15 +91,7 @@ class ProductController extends Controller
                 ]
             ]);
         } catch ( Throwable $e ) {
-            $message = 'Internal Server Error';
-            Concurrency::defer(function () use ($e, $message) {
-                HandleErrorLoggingAction::handle($e, $message);
-            });
-
-            return response()->json([
-                'success' => false,
-                'error' => $message,
-            ], 500);
+            return response()->unexpectedError($e);
         }
     }
 
@@ -149,15 +107,7 @@ class ProductController extends Controller
             ]);
 
         } catch ( Throwable $e ) {
-            $message = 'Internal Server Error';
-            Concurrency::defer(function () use ($e, $message) {
-                HandleErrorLoggingAction::handle($e, $message);
-            });
-
-            return response()->json([
-                'success' => false,
-                'error' => $message,
-            ], 500);
+            return response()->unexpectedError($e);
         }
     }
 }
