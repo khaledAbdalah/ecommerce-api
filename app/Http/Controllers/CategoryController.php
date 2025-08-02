@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class CategoryController extends Controller
 {
@@ -15,12 +15,17 @@ class CategoryController extends Controller
      */
     public function index()
     {
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'categories' => Category::all()
-            ]
-        ]);
+        try {
+            $categories = Category::all();
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'categories' => $categories,
+                ]
+            ]);
+        } catch ( Throwable $e){
+            return response()->unexpectedError($e);
+        }
     }
 
     /**
@@ -54,40 +59,34 @@ class CategoryController extends Controller
                 'success' => false,
                 'errors' => $e->errors(),
             ], 422);
+        } catch (Throwable $e) {
+            return response()->unexpectedError($e);
         }
     }
 
     /**
      * Display the specified resource.
      */
-    public function show($id)
+    public function show(Category $category)
     {
         try {
-
-            if (!$category = Category::find($id)) throw new ModelNotFoundException('Category not found');
-
             return response()->json([
                 'success' => true,
                 'data' => [
                     'category' => $category,
                 ]
             ]);
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage(),
-            ], 404);
+        } catch ( Throwable $e){
+            return response()->unexpectedError($e);
         }
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, Category $category)
     {
         try {
-
-            if (!$category = Category::find($id)) throw new ModelNotFoundException('Category not found');
 
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
@@ -100,7 +99,8 @@ class CategoryController extends Controller
                 $validated['thumbnail'] = $request->thumbnail->store('categories/thumbnail');
             }
 
-            $category->update($validated);
+            $category->fill($validated)->save();
+            $category = $category->fresh();
 
             return response()->json([
                 'success' => true,
@@ -109,27 +109,22 @@ class CategoryController extends Controller
                     'category' => $category,
                 ]
             ]);
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage()
-            ], 404);
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'errors' => $e->errors(),
-            ]);
+            ], 422);
+        } catch (Throwable $e) {
+            return response()->unexpectedError($e);
         }
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy($id)
+    public function destroy(Category $category)
     {
         try {
-
-            if (!$category =  Category::find($id)) throw new ModelNotFoundException('Category not found');
 
             $category->deleteThumbnail();
             $category->delete();
@@ -139,11 +134,8 @@ class CategoryController extends Controller
                 'message' => 'Category deleted successfully'
             ]);
 
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage(),
-            ]);
+        } catch ( Throwable $e){
+            return response()->unexpectedError($e);
         }
     }
 }
