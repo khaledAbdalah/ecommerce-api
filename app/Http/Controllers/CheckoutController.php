@@ -14,6 +14,7 @@ use App\Http\Resources\ShippingAddressResource;
 use App\Models\Cart;
 use App\Models\Payment;
 use App\Services\CheckoutService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Throwable;
@@ -100,7 +101,6 @@ class CheckoutController extends Controller
                 ]
             ]);
         } catch ( EmptyCartException $e ) {
-            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -122,7 +122,7 @@ class CheckoutController extends Controller
         try {
             $request->validate([
                 'payment_intent_id' => 'required',
-                'order_id' => 'required',
+                'order_id' => 'required|exists:orders,id',
             ]);
 
             $status = $service->confirmPayment($request);
@@ -133,6 +133,11 @@ class CheckoutController extends Controller
                 ]);
             }
             return response()->noContent();
+        } catch ( AuthorizationException $e ) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+            ]);
         } catch ( Throwable $e ) {
             return response()->unexpectedError($e);
         }

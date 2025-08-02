@@ -11,6 +11,8 @@ use App\Actions\ProcessPaymentAction;
 use App\DTOs\CheckoutData;
 use App\Exceptions\EmptyCartException;
 use App\Models\Cart;
+use App\Models\Order;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Stripe\PaymentIntent;
@@ -30,50 +32,54 @@ class CheckoutService
 
         $addresses = $request->user()->addresses;
 
-        return [ $items, $total, $addresses ];
+        return [$items, $total, $addresses];
     }
-    
-   /**
-    * @param CheckoutData $dto
-    * @param Collection $items
-    * @param float $total
-    * @return array
-    */
-   public function store(CheckoutData $dto, Collection $items, float $total): array
-   {
 
-      // get shipping address or create
-      $address = CreateShippingAddressAction::handle($dto);
+    /**
+     * @param CheckoutData $dto
+     * @param Collection $items
+     * @param float $total
+     * @return array
+     */
+    public function store (CheckoutData $dto, Collection $items, float $total): array
+    {
 
-      // create order
-      $order = CreateOrderAction::handle($dto, $address, $total);
+        // get shipping address or create
+        $address = CreateShippingAddressAction::handle($dto);
 
-      // attach order items
-      AttachOrderItemsAction::handle($items, $order);
+        // create order
+        $order = CreateOrderAction::handle($dto, $address, $total);
 
-      $payment = null;
-      if ($dto->paymentMethod === 'card') {
-         $payment = ProcessPaymentAction::handle($total, $order, $dto);
-      }else{
-          $payment = CreatePaymentAction::handle($order, $total, $dto);
-      }
+        // attach order items
+        AttachOrderItemsAction::handle($items, $order);
 
-      // clear cart
-      ClearCartAction::handle($dto);
+        $payment = null;
+        if ( $dto->paymentMethod === 'card' ) {
+            $payment = ProcessPaymentAction::handle($total, $order, $dto);
+        } else {
+            $payment = CreatePaymentAction::handle($order, $total, $dto);
+        }
 
-      return [$address, $order, $payment ];
-   }
+        // clear cart
+        ClearCartAction::handle($dto);
 
-   /**
-    * @param Request $request
-    * @return bool
-    */
-   public function confirmPayment(Request $request): bool
-   {
-      Stripe::setApiKey(config('services.stripe.secret'));
+        return [$address, $order, $payment];
+    }
 
-      $intent = PaymentIntent::retrieve($request->payment_intent_id);
+    /**
+     * @param Request $request
+     * @return bool
+     */
+    public function confirmPayment (Request $request): bool
+    {
+        $order = Order::find($request->order_id);
+        if ( !$order->user_id === $request->user()->id ) {
+            throw new AuthorizationException('Unauthorized');
+        }
+        Stripe::setApiKey(config('services.stripe.secret'));
 
-      return $intent->status === 'succeeded' ? true : false;
-   }
+        $intent = PaymentIntent::retrieve($request->payment_intent_id);
+
+        return $intent->status === 'succeeded' ? true : false;
+    }
 }
