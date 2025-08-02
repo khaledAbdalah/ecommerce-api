@@ -26,9 +26,24 @@ class AppServiceProvider extends ServiceProvider
             dispatch(new HandleServerErrorJob($e, $message, $data));
 
             return response()->json([
-                'success' => false,
+                'status' => false,
                 'error' => $message,
             ], 500);
+        });
+
+        Response::macro('success', function ($data = [], $message = null) {
+            return response()->json([
+                'status' => true,
+                'message' => $message,
+                'data' => $data,
+            ]);
+        });
+
+        Response::macro('error', function ($message = 'Something went wrong', $status = 400) {
+            return response()->json([
+                'status' => false,
+                'error' => $message,
+            ], $status);
         });
     }
 }
