@@ -7,14 +7,14 @@ use Illuminate\Support\Facades\Storage;
 
 class Category extends Model
 {
-    protected $fillable = ['name' , 'description' , 'thumbnail'];
+    protected $fillable = ['name', 'description', 'thumbnail'];
 
-    public function deleteThumbnail()
+    public function deleteThumbnail ()
     {
-        Storage::delete($this->thumbanil);
+        if ( !empty($this->thumbnail) ) Storage::delete($this->thumbnail);
     }
 
-    public function products()
+    public function products ()
     {
         return $this->belongsToMany(Product::class);
     }

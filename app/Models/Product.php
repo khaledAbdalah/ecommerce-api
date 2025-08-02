@@ -18,34 +18,33 @@ class Product extends Model
         'status',
         'featured',
     ];
-
     protected $casts = [
         'gallery' => 'array',
         'price' => 'decimal:2',
         'featured' => 'boolean',
     ];
 
-    public function deleteThumbnail()
+    public function deleteThumbnail ()
     {
-        Storage::delete($this->thumbnail);
+        if ( !empty($this->thumbnail) ) Storage::delete($this->thumbnail);
     }
 
-    public function deleteGallery()
+    public function deleteGallery ()
     {
-        Storage::delete($this->gallery);
+        if ( !empty($this->gallery) ) Storage::delete($this->gallery);
     }
 
-    public function categories()
+    public function categories ()
     {
         return $this->belongsToMany(Category::class);
     }
 
-    public function cartItems()
+    public function cartItems ()
     {
         return $this->hasMany(Cart::class);
     }
 
-    public function orderItems()
+    public function orderItems ()
     {
         return $this->hasMany(OrderItem::class);
     }

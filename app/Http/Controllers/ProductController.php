@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ProductStoreRequest;
 use App\Http\Requests\ProductUpdateRequest;
+use App\Http\Resources\CategoryResource;
 use App\Http\Resources\ProductResource;
 use App\Models\Category;
 use App\Models\Product;
@@ -32,7 +33,7 @@ class ProductController extends Controller
     {
         try {
             $this->authorize('create', Product::class);
-            $categories = Category::all(['id', 'name']);
+            $categories = CategoryResource::collection(Category::all(['id', 'name']));
             return response()->json([
                 'success' => true,
                 'data' => [
