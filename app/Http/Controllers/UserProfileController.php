@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -18,7 +19,7 @@ class UserProfileController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'user' => $user,
+                    'user' => new UserResource($user),
                 ]
             ]);
         } catch (Throwable $e) {
@@ -43,7 +44,7 @@ class UserProfileController extends Controller
                 'success' => true,
                 'message' => 'Data updated successfully',
                 'data' => [
-                    'user' => $user,
+                    'user' => new UserResource($user),
                 ]
             ]);
         } catch ( ValidationException $e ) {
