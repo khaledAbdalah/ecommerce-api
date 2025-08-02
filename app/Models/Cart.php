@@ -11,28 +11,25 @@ class Cart extends Model
         'user_id',
         'product_id',
         'quantity',
-        'price'
     ];
-
     protected $casts = [
         'price' => 'decimal:2',
-        'quantity' => 'integer'
     ];
 
-    public function user()
+    public function user ()
     {
         return $this->belongsTo(User::class);
     }
 
-    public function product()
+    public function product ()
     {
         return $this->belongsTo(Product::class);
     }
 
-    public function total(): Attribute
+    public function total (): Attribute
     {
         return Attribute::make(
-            get: fn() => $this->product->price * $this->quantity
+            get: fn () => $this->product->price * $this->quantity
         );
     }
 }
