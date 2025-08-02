@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ShippingAddressStoreRequest;
 use App\Models\ShippingAddress;
-use Exception;
+use Throwable;
 
 class ShippingAddressController extends Controller
 {
@@ -13,14 +13,18 @@ class ShippingAddressController extends Controller
      */
     public function index ()
     {
-        $this->authorize('viewAny', ShippingAddress::class);
-        $shippingAddresses = ShippingAddress::with('user')->paginate(10);
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'shippingAddresses' => $shippingAddresses
-            ]
-        ]);
+        try {
+            $this->authorize('viewAny', ShippingAddress::class);
+            $shippingAddresses = ShippingAddress::with('user')->paginate(10);
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'shippingAddresses' => $shippingAddresses
+                ]
+            ]);
+        } catch ( Throwable $e ) {
+            return response()->unexpectedError($e);
+        }
     }
 
     /**
@@ -36,11 +40,8 @@ class ShippingAddressController extends Controller
                     'shippingAddress' => $address
                 ]
             ]);
-        } catch ( Exception $exception ) {
-            return response()->json([
-                'success' => false,
-                'error' => $exception->getMessage()
-            ], 400);
+        } catch ( Throwable $exception ) {
+            return response()->unexpectedError($exception);
         }
     }
 
@@ -57,11 +58,8 @@ class ShippingAddressController extends Controller
                     'shippingAddress' => $shippingAddress
                 ]
             ]);
-        } catch ( Exception $exception ) {
-            return response()->json([
-                'success' => false,
-                'error' => $exception->getMessage(),
-            ], 400);
+        } catch ( Throwable $exception ) {
+            return response()->unexpectedError($exception);
         }
     }
 
@@ -75,11 +73,8 @@ class ShippingAddressController extends Controller
                     'addresses' => $addresses
                 ]
             ]);
-        } catch ( Exception $exception ) {
-            return response()->json([
-                'success' => false,
-                'error' => $exception->getMessage(),
-            ], 400);
+        } catch ( Throwable $exception ) {
+            return response()->unexpectedError($exception);
         }
     }
 
@@ -99,11 +94,8 @@ class ShippingAddressController extends Controller
                     'shippingAddress' => $address
                 ]
             ]);
-        } catch ( Exception $exception ) {
-            return response()->json([
-                'success' => false,
-                'error' => $exception->getMessage(),
-            ], 400);
+        } catch ( Throwable $exception ) {
+            return response()->unexpectedError($exception);
         }
     }
 
@@ -112,8 +104,12 @@ class ShippingAddressController extends Controller
      */
     public function destroy (ShippingAddress $shippingAddress)
     {
-        $this->authorize('delete', $shippingAddress);
-        $shippingAddress->delete();
-        return response()->noContent();
+        try {
+            $this->authorize('delete', $shippingAddress);
+            $shippingAddress->delete();
+            return response()->noContent();
+        } catch ( Throwable $exception ) {
+            return response()->unexpectedError($exception);
+        }
     }
 }
