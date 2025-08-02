@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\LowStockException;
 use App\Models\Cart;
 use App\Models\Product;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class CartController extends Controller
 {
@@ -40,6 +41,7 @@ class CartController extends Controller
     public function store(Request $request)
     {
         try {
+            $this->authorize('create', Cart::class);
             $user = $request->user();
             $request->validate([
                 'product_id' => 'required|exists:products,id',
@@ -47,41 +49,34 @@ class CartController extends Controller
             ]);
 
             $product = Product::findOrFail($request->product_id);
+            $this->ensureStockAvailable($product, $request->quantity);
 
-            if ($product->stock < $request->quantity) {
-                throw new \Exception("Only $product->stock items are available in stock.");
-            }
-
-            $cartItem = Cart::where('user_id', $user->id)
+            $item = Cart::where('user_id', $user->id)
                 ->where('product_id', $request->product_id)
                 ->first();
 
-            if ($cartItem) {
-                $newQuantity = $cartItem->quantity + $request->quantity;
+            if ($item) {
+                $this->ensureStockAvailable($product, $request->quantity);
 
-                if ($product->stock < $newQuantity) {
-                    throw new \Exception("Only $product->stock items are available in stock.");
-                }
+                $item->quantity = $request->quantity;
+                $item->save();
+                $item = $item->fresh('product');
 
-                $cartItem->update([
-                    'quantity' => $newQuantity,
-                ]);
             } else {
-
-                $cartItem = Cart::create([
+                $item = Cart::create([
                     'user_id' => $user->id,
                     'product_id' => $request->product_id,
                     'quantity' => $request->quantity,
                 ]);
-            }
 
-            $cartItem->load('product');
+                $item = $item->load(['product']);
+            }
 
             return response()->json([
                 'success' => true,
                 'message' => 'Item added to cart successfully',
                 'data' => [
-                    'item' => $cartItem,
+                    'item' => $item,
                 ]
             ], 201);
         } catch (ValidationException $e) {
@@ -89,98 +84,63 @@ class CartController extends Controller
                 'success' => false,
                 'errors' => $e->errors()
             ], 422);
-        } catch (\Exception $e) {
+        } catch ( LowStockException $e) {
             return response()->json([
                 'success' => false,
                 'error' => $e->getMessage(),
             ], 400);
+        } catch ( Throwable $e){
+            return response()->unexpectedError($e);
         }
     }
 
 
 
-    public function update(Request $request, $id)
+    public function update(Request $request, Cart $item)
     {
         try {
-            $user = $request->user();
+            $this->authorize('update', $item);
             $request->validate([
                 'quantity' => 'required|integer|min:1'
             ]);
 
-            $cartItem = Cart::where('user_id', $user->id)
-                ->where('id', $id)
-                ->with('product')
-                ->first();
+            $item->load(['product']);
+            $product = $item->product;
+            $this->ensureStockAvailable($product, $request->quantity);
 
-            if (!$cartItem) {
-                throw new ModelNotFoundException('Item not found');
-            }
-
-            $product = $cartItem->product;
-
-            if ($product->stock < $request->quantity) {
-                throw new \Exception("Only $product->stock items are available in stock.");
-            }
-
-            $cartItem->update([
-                'quantity' => $request->quantity,
-            ]);
-
-            $cartItem->load('product');
+            $item->quantity = $request->quantity;
+            $item->save();
+            $item = $item->fresh(['product']);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Item updated successfully',
                 'data' => [
-                    'item' => $cartItem
+                    'item' => $item
                 ]
             ]);
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage(),
-            ], 404);
-        } catch (ValidationException $e) {
+        }  catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'errors' => $e->errors()
             ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage(),
-            ], 400);
+        } catch ( Throwable $e) {
+            return response()->unexpectedError($e);
         }
     }
 
-    public function destroy(Request $request, $id)
+    public function destroy(Request $request, Cart $item)
     {
         try {
-
-            $cartItem = Cart::where('user_id', $request->user()->id)
-                ->where('id', $id)
-                ->first();
-
-            if (!$cartItem) {
-                throw new ModelNotFoundException('Item not found');
-            }
-
-            $cartItem->delete();
+            $this->authorize('delete', $item);
+            $item->delete();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Item deleted successfully'
             ]);
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage(),
-            ], 404);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage(),
-            ], 400);
+        } catch ( Throwable $e) {
+            return response()->unexpectedError($e);
         }
     }
 
@@ -204,5 +164,12 @@ class CartController extends Controller
                 'count' => $count
             ]
         ]);
+    }
+
+    protected function ensureStockAvailable(Product $product, int $quantity): void
+    {
+        if ($product->stock < $quantity) {
+            throw new LowStockException("Only {$product->stock} items are available in stock.");
+        }
     }
 }
