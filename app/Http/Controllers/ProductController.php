@@ -30,6 +30,7 @@ class ProductController extends Controller
     public function create ()
     {
        try {
+           $this->authorize('create', Product::class);
            $categories = Category::all(['id', 'name']);
            return response()->json([
                'success' => true,

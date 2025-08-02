@@ -34,15 +34,9 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // products routes and categories
-Route::apiResource('products', ProductController::class)->only(['index', 'show']);
-Route::apiResource('categories', CategoryController::class)->only(['index', 'show']);
-
-Route::middleware(['auth:sanctum', 'isAdmin'])->group(function () {
-    Route::get('products/create', [ProductController::class, 'create']);
-    Route::apiResource('products', ProductController::class)->except(['index', 'show']);
-
-    Route::apiResource('categories', CategoryController::class)->except(['index', 'show']);
-});
+Route::get('products/create', [ProductController::class, 'create']);
+Route::apiResource('products', ProductController::class);
+Route::apiResource('categories', CategoryController::class);
 
 // cart routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -60,7 +54,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // orders routes
     Route::apiResource('orders', OrderController::class)->except('store');
-
     Route::patch('orders/{order}/cancel', [OrderController::class, 'cancel']);
 
     // Shipping Address routes

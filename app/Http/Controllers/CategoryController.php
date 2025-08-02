@@ -34,7 +34,7 @@ class CategoryController extends Controller
     public function store(Request $request)
     {
         try {
-
+            $this->authorize('create', Category::class);
             $validated =  $request->validate([
                 'name' => 'required|string|max:255',
                 'description' => 'nullable|string',
@@ -87,7 +87,7 @@ class CategoryController extends Controller
     public function update(Request $request, Category $category)
     {
         try {
-
+            $this->authorize('update', $category);
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'description' => 'nullable|string',
@@ -125,7 +125,7 @@ class CategoryController extends Controller
     public function destroy(Category $category)
     {
         try {
-
+            $this->authorize('delete', $category);
             $category->deleteThumbnail();
             $category->delete();
 
