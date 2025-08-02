@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ProductStoreRequest;
 use App\Http\Requests\ProductUpdateRequest;
+use App\Http\Resources\ProductResource;
 use App\Models\Category;
 use App\Models\Product;
 use App\Services\ProductService;
@@ -14,48 +15,46 @@ class ProductController extends Controller
     public function index ()
     {
         try {
-            $products = Product::with('categories')->paginate(10);
+            $products = Product::with('categories')
+                ->paginate(10)
+                ->toResourceCollection();
             return response()->json([
                 'success' => true,
-                'data' => [
-                    'products' => $products
-                ]
+                'data' => [$products]
             ]);
         } catch ( Throwable $e ) {
-           return response()->unexpectedError($e);
+            return response()->unexpectedError($e);
         }
 
     }
 
     public function create ()
     {
-       try {
-           $this->authorize('create', Product::class);
-           $categories = Category::all(['id', 'name']);
-           return response()->json([
-               'success' => true,
-               'data' => [
-                   'categories' => $categories,
-               ]
-           ]);
-       } catch ( Throwable $e ) {
-           return response()->unexpectedError($e);
-       }
+        try {
+            $this->authorize('create', Product::class);
+            $categories = Category::all(['id', 'name']);
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'categories' => $categories,
+                ]
+            ]);
+        } catch ( Throwable $e ) {
+            return response()->unexpectedError($e);
+        }
     }
-
 
     public function store (ProductStoreRequest $request, ProductService $service)
     {
         try {
-
             $validated = $request->validated();
             $product = $service->create($request, $validated);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Product added successfully',
+                'message' => 'ProductCollection added successfully',
                 'data' => [
-                    'product' => $product,
+                    'product' => new ProductResource($product),
                 ]
             ], 201);
         } catch ( Throwable $e ) {
@@ -70,7 +69,7 @@ class ProductController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'product' => $product,
+                    'product' => new ProductResource($product),
                 ]
             ]);
         } catch ( Throwable $e ) {
@@ -82,20 +81,19 @@ class ProductController extends Controller
     {
         try {
             $validated = $request->validated();
-            $product = $service->update($request, $validated, $product );
+            $product = $service->update($request, $validated, $product);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Product updated successfully',
+                'message' => 'ProductCollection updated successfully',
                 'data' => [
-                    'product' => $product,
+                    'product' => new ProductResource($product),
                 ]
             ]);
         } catch ( Throwable $e ) {
             return response()->unexpectedError($e);
         }
     }
-
 
     public function destroy (Product $product, ProductService $service)
     {
@@ -104,7 +102,7 @@ class ProductController extends Controller
             $service->delete($product);
             return response()->json([
                 'success' => true,
-                'message' => 'Product deleted successfully'
+                'message' => 'ProductCollection deleted successfully'
             ]);
 
         } catch ( Throwable $e ) {

@@ -3,8 +3,8 @@
 namespace App\Actions;
 
 use App\Mail\ServerError;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use Log;
 use Throwable;
 
 class HandleErrorLoggingAction

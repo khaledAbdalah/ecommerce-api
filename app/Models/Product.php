@@ -20,7 +20,9 @@ class Product extends Model
     ];
 
     protected $casts = [
-        'gallery' => 'array'
+        'gallery' => 'array',
+        'price' => 'decimal:2',
+        'featured' => 'boolean',
     ];
 
     public function deleteThumbnail()

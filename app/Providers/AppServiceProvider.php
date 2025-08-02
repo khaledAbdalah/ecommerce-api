@@ -2,8 +2,7 @@
 
 namespace App\Providers;
 
-use App\Actions\HandleErrorLoggingAction;
-use Illuminate\Support\Facades\Concurrency;
+use App\Jobs\HandleServerErrorJob;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\ServiceProvider;
 use Throwable;
@@ -13,7 +12,7 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Register any application services.
      */
-    public function register(): void
+    public function register (): void
     {
         //
     }
@@ -21,11 +20,11 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
-    public function boot(): void
+    public function boot (): void
     {
         Response::macro('unexpectedError', function (Throwable $e, string $message = 'Internal Server Error', array|null $data = null) {
-            Concurrency::defer(fn() => HandleErrorLoggingAction::handle($e, $message, $data));
-            
+            dispatch(new HandleServerErrorJob($e, $message, $data));
+
             return response()->json([
                 'success' => false,
                 'error' => $message,

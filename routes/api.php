@@ -33,14 +33,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('profile', [UserProfileController::class, 'destroy']);
 });
 
-// products routes and categories
-Route::get('products/create', [ProductController::class, 'create']);
-Route::apiResource('products', ProductController::class);
-Route::apiResource('categories', CategoryController::class);
-
-// cart routes
 Route::middleware('auth:sanctum')->group(function () {
 
+    // products routes and categories
+    Route::get('products/create', [ProductController::class, 'create']);
+    Route::apiResource('products', ProductController::class);
+    Route::apiResource('categories', CategoryController::class);
+
+    // cart routes
     Route::apiResource('cart', CartController::class)->except('show');
     Route::delete('cart/clear', [CartController::class, 'clear']);
     Route::get('cart/count', [CartController::class, 'count']);
