@@ -10,29 +10,16 @@ use App\Http\Requests\CheckoutStoreRequest;
 use App\Models\Cart;
 use App\Models\Payment;
 use App\Services\CheckoutService;
-use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class CheckoutController extends Controller
 {
-    public function create (Request $request)
+    public function create (Request $request, CheckoutService $service)
     {
         try {
-            $items = Cart::with('product')
-                ->where('user_id', $request->user()->id)
-                ->get();
-
-            if ( $items->isEmpty() ) throw new EmptyCartException('Cart is empty');
-
-            $total = $items->sum(fn ($item) => $item->total);
-
-            $addresses = $request->user()->addresses;
-
-            if ( $addresses->isEmpty() ) {
-                $addresses = [];
-            }
-
+            [ $items, $total, $addresses ] = $service->create($request);
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -46,17 +33,16 @@ class CheckoutController extends Controller
                 'success' => false,
                 'error' => $e->getMessage(),
             ], 400);
+        } catch ( Throwable $e){
+            return response()->unexpectedError($e);
         }
     }
 
-    public function store (CheckoutStoreRequest $request)
+    public function store (CheckoutStoreRequest $request, CheckoutService $service)
     {
         try {
-
-            // get user
             $user = $request->user();
 
-            // get cart items
             $items = Cart::with('product')
                 ->where('user_id', $user->id)
                 ->get();
@@ -69,17 +55,17 @@ class CheckoutController extends Controller
             // get items total
             $total = $items->sum(fn ($item) => $item->total);
 
-            // create checkout data transfair object instance
+            // create checkout data transfer object instance
             $dto = CheckoutData::create($user, $request->validated());
 
             DB::beginTransaction();
 
             // run checkout service
-            $handle = CheckoutService::checkout($dto, $items, $total);
+            [$address, $order, $payment ] = $service->store($dto, $items, $total);
 
             DB::commit();
 
-            event(new OrderPlacedEvent($handle['order']));
+            event(new OrderPlacedEvent($order));
 
             if ( $dto->paymentMethod === 'card' ) {
                 return response()->json([
@@ -87,11 +73,11 @@ class CheckoutController extends Controller
                     'message' => 'Order placed successfully',
                     'require_payment' => true,
                     'data' => [
-                        'order' => $handle['order'],
+                        'order' => $order,
                         'items' => $items,
                         'total' => $total,
-                        'address' => $handle['address'],
-                        'payment' => $handle['payment'],
+                        'address' => $address,
+                        'payment' => $payment,
                         'payment_method' => $dto->paymentMethod,
                     ]
                 ]);
@@ -102,10 +88,10 @@ class CheckoutController extends Controller
                 'message' => 'Order placed successfully',
                 'require_payment' => false,
                 'data' => [
-                    'order' => $handle['order'],
+                    'order' => $order,
                     'items' => $items,
                     'total' => $total,
-                    'address' => $handle['address'],
+                    'address' => $address,
                     'payment_method' => $dto->paymentMethod,
                 ]
             ]);
@@ -121,42 +107,30 @@ class CheckoutController extends Controller
                 'success' => false,
                 'error' => $e->getMessage()
             ], 400);
-        } catch ( Exception $e ) {
+        } catch ( Throwable $e ) {
             DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage(),
-            ], 400);
+            return response()->unexpectedError($e);
         }
     }
 
-    public function paymentCallback (Request $request)
+    public function paymentCallback (Request $request, CheckoutService $service)
     {
         try {
-
             $request->validate([
                 'payment_intent_id' => 'required',
                 'order_id' => 'required',
             ]);
 
-            $status = CheckoutService::confirmPayment($request);
+            $status = $service->confirmPayment($request);
 
             if ( $status === true ) {
-                $pay = Payment::where('order_id', $request->order_id)->update([
+                Payment::where('order_id', $request->order_id)->update([
                     'status' => 'paid',
                 ]);
             }
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'payment' => $status,
-                ]
-            ]);
-        } catch ( Exception $e ) {
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage(),
-            ]);
+            return response()->noContent();
+        } catch ( Throwable $e ) {
+            return response()->unexpectedError($e);
         }
     }
 }

@@ -2,27 +2,44 @@
 
 namespace App\Services;
 
-use App\Actions\CreatePaymentAction;
-use Stripe\PaymentIntent;
-use Stripe\Stripe;
-use App\DTOs\CheckoutData;
-use Illuminate\Http\Request;
+use App\Actions\AttachOrderItemsAction;
 use App\Actions\ClearCartAction;
 use App\Actions\CreateOrderAction;
-use App\Actions\ProcessPaymentAction;
-use App\Actions\AttachOrderItemsAction;
+use App\Actions\CreatePaymentAction;
 use App\Actions\CreateShippingAddressAction;
+use App\Actions\ProcessPaymentAction;
+use App\DTOs\CheckoutData;
+use App\Exceptions\EmptyCartException;
+use App\Models\Cart;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\Request;
+use Stripe\PaymentIntent;
+use Stripe\Stripe;
 
 class CheckoutService
 {
+    public function create (Request $request): array
+    {
+        $items = Cart::with('product')
+            ->where('user_id', $request->user()->id)
+            ->get();
+
+        if ( $items->isEmpty() ) throw new EmptyCartException('Cart is empty');
+
+        $total = $items->sum(fn ($item) => $item->total);
+
+        $addresses = $request->user()->addresses;
+
+        return [ $items, $total, $addresses ];
+    }
+    
    /**
     * @param CheckoutData $dto
     * @param Collection $items
     * @param float $total
     * @return array
     */
-   public static function checkout(CheckoutData $dto, Collection $items, float $total): array
+   public function store(CheckoutData $dto, Collection $items, float $total): array
    {
 
       // get shipping address or create
@@ -44,23 +61,19 @@ class CheckoutService
       // clear cart
       ClearCartAction::handle($dto);
 
-      return [
-         'address'   => $address,
-         'order'     => $order,
-         'payment'   => $payment
-      ];
+      return [$address, $order, $payment ];
    }
 
    /**
     * @param Request $request
     * @return bool
     */
-   public static function confirmPayment(Request $request): bool
+   public function confirmPayment(Request $request): bool
    {
       Stripe::setApiKey(config('services.stripe.secret'));
 
       $intent = PaymentIntent::retrieve($request->payment_intent_id);
 
-      return $intent->status = 'succeeded' ? true : false;
+      return $intent->status === 'succeeded' ? true : false;
    }
 }
