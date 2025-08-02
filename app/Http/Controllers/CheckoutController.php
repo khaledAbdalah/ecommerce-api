@@ -7,6 +7,10 @@ use App\Events\OrderPlacedEvent;
 use App\Exceptions\EmptyCartException;
 use App\Exceptions\LowStockException;
 use App\Http\Requests\CheckoutStoreRequest;
+use App\Http\Resources\CartItemResource;
+use App\Http\Resources\OrderResource;
+use App\Http\Resources\PaymentResource;
+use App\Http\Resources\ShippingAddressResource;
 use App\Models\Cart;
 use App\Models\Payment;
 use App\Services\CheckoutService;
@@ -19,13 +23,13 @@ class CheckoutController extends Controller
     public function create (Request $request, CheckoutService $service)
     {
         try {
-            [ $items, $total, $addresses ] = $service->create($request);
+            [$items, $total, $addresses] = $service->create($request);
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'items' => $items,
-                    'total' => $total,
-                    'addresses' => $addresses,
+                    'items' => CartItemResource::collection($items),
+                    'total' => number_format($total, 2),
+                    'addresses' => ShippingAddressResource::collection($addresses),
                 ],
             ]);
         } catch ( EmptyCartException $e ) {
@@ -33,7 +37,7 @@ class CheckoutController extends Controller
                 'success' => false,
                 'error' => $e->getMessage(),
             ], 400);
-        } catch ( Throwable $e){
+        } catch ( Throwable $e ) {
             return response()->unexpectedError($e);
         }
     }
@@ -61,7 +65,7 @@ class CheckoutController extends Controller
             DB::beginTransaction();
 
             // run checkout service
-            [$address, $order, $payment ] = $service->store($dto, $items, $total);
+            [$address, $order, $payment] = $service->store($dto, $items, $total);
 
             DB::commit();
 
@@ -73,11 +77,11 @@ class CheckoutController extends Controller
                     'message' => 'Order placed successfully',
                     'require_payment' => true,
                     'data' => [
-                        'order' => $order,
-                        'items' => $items,
-                        'total' => $total,
-                        'address' => $address,
-                        'payment' => $payment,
+                        'order' => new OrderResource($order),
+                        'items' => CartItemResource::collection($items),
+                        'total' => number_format($total, 2),
+                        'address' => new ShippingAddressResource($address),
+                        'payment' => new PaymentResource($payment),
                         'payment_method' => $dto->paymentMethod,
                     ]
                 ]);
@@ -88,10 +92,10 @@ class CheckoutController extends Controller
                 'message' => 'Order placed successfully',
                 'require_payment' => false,
                 'data' => [
-                    'order' => $order,
-                    'items' => $items,
-                    'total' => $total,
-                    'address' => $address,
+                    'order' => new OrderResource($order),
+                    'items' => CartItemResource::collection($items),
+                    'total' => number_format($total, 2),
+                    'address' => new ShippingAddressResource($address),
                     'payment_method' => $dto->paymentMethod,
                 ]
             ]);
