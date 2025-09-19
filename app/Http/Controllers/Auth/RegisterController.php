@@ -28,18 +28,12 @@ class RegisterController extends Controller
 
             event(new Registered($user));
 
-            return response()->json([
-                'success' => true,
-                'message' => 'User Created Successfully!',
-                'data' => [
-                    'user' => new UserResource($user),
-                    'token' => $token,
-                ],
-            ], 201);
+            return $this->success(['user' => new UserResource($user), 'token' => $token],
+                'User Created Successfully!', 201);
 
         } catch ( Throwable $e ) {
             $message = 'Registration failed!, please try again.';
-            return response()->unexpectedError($e, $message, [
+            return $this->unexpectedError($e, $message, [
                 'data' => $request->except('password'),
                 'ip' => $request->ip(),
                 'agent' => $request->userAgent(),

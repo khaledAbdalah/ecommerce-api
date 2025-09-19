@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\OrderCollection;
+use App\Http\Resources\OrderResource;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -16,39 +18,27 @@ class OrderController extends Controller
         try {
             $this->authorize('view-any', Order::class);
             $orders = Order::with(self::RELATIONS)->paginate(10);
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'orders' => $orders,
-                ]
-            ]);
-        } catch ( Throwable $e)
-        {
-            return response()->unexpectedError($e);
+            return $this->success(new OrderCollection($orders));
+        } catch ( Throwable $e ) {
+            return $this->unexpectedError($e);
         }
     }
 
     public function show (Order $order)
     {
+        $this->authorize('view', $order);
         try {
-            $this->authorize('view', $order);
             $order->load(self::RELATIONS);
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'order' => $order,
-                ]
-            ]);
-        } catch ( Throwable $e){
-            return response()->unexpectedError($e);
+            return $this->success(['order' => new OrderResource($order)]);
+        } catch ( Throwable $e ) {
+            return $this->unexpectedError($e);
         }
     }
 
     public function update (Request $request, Order $order)
     {
+        $this->authorize('update', $order);
         try {
-
-            $this->authorize('update', $order);
             $request->validate([
                 'status' => 'required|string',
             ]);
@@ -58,53 +48,38 @@ class OrderController extends Controller
 
             $order = $order->fresh(self::RELATIONS);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Order updated successfully',
-                'data' => [
-                    'order' => $order,
-                ],
-            ]);
+            return $this->success(['order' => new OrderResource($order)], 'Order updated successfully');
 
         } catch ( ValidationException $e ) {
-            return response()->json([
-                'success' => false,
-                'error' => $e->errors(),
-            ], 422);
+            return $this->error($e->getMessage(), 422);
         } catch ( Throwable $e ) {
-            return response()->unexpectedError($e);
+            return $this->unexpectedError($e);
         }
     }
 
     public function cancel (Request $request, Order $order)
     {
+        $this->authorize('cancel', $order);
         try {
-            $this->authorize('cancel', $order);
             $order->status = 'cancelled';
             $order->save();
             $order = $order->fresh(self::RELATIONS);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Order cancelled successfully',
-                'data' => [
-                    'order' => $order,
-                ],
-            ]);
+            return $this->success(['order' => new OrderResource($order)], 'Order cancelled successfully');
 
         } catch ( Throwable $e ) {
-            return response()->unexpectedError($e);
+            return $this->unexpectedError($e);
         }
     }
 
     public function destroy (Order $order)
     {
+        $this->authorize('delete', $order);
         try {
-            $this->authorize('delete', $order);
             $order->delete();
             return response()->noContent();
         } catch ( Throwable $e ) {
-            return response()->unexpectedError($e);
+            return $this->unexpectedError($e);
         }
     }
 }

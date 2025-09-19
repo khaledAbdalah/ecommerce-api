@@ -15,12 +15,9 @@ class LogoutController extends Controller
     {
         try {
             $request->user()->currentAccessToken()->delete();
-            return response()->json([
-                'success' => true,
-                'message' => 'You are logged out successfully.'
-            ]);
+            return $this->success(message: 'Logged out successfully');
         } catch ( Throwable $e ) {
-            return response()->unexpectedError($e);
+            return $this->unexpectedError($e);
         }
     }
 }

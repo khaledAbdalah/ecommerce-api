@@ -25,21 +25,15 @@ class CheckoutController extends Controller
     {
         try {
             [$items, $total, $addresses] = $service->create($request);
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'items' => CartItemResource::collection($items),
-                    'total' => number_format($total, 2),
-                    'addresses' => ShippingAddressResource::collection($addresses),
-                ],
+            return $this->success([
+                'items' => CartItemResource::collection($items),
+                'total' => number_format($total, 2),
+                'addresses' => ShippingAddressResource::collection($addresses),
             ]);
         } catch ( EmptyCartException $e ) {
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage(),
-            ], 400);
+            return $this->error($e->getMessage());
         } catch ( Throwable $e ) {
-            return response()->unexpectedError($e);
+            return $this->unexpectedError($e);
         }
     }
 
@@ -73,47 +67,33 @@ class CheckoutController extends Controller
             event(new OrderPlacedEvent($order));
 
             if ( $dto->paymentMethod === 'card' ) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Order placed successfully',
+                return $this->success([
                     'require_payment' => true,
-                    'data' => [
-                        'order' => new OrderResource($order),
-                        'items' => CartItemResource::collection($items),
-                        'total' => number_format($total, 2),
-                        'address' => new ShippingAddressResource($address),
-                        'payment' => new PaymentResource($payment),
-                        'payment_method' => $dto->paymentMethod,
-                    ]
-                ]);
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Order placed successfully',
-                'require_payment' => false,
-                'data' => [
                     'order' => new OrderResource($order),
                     'items' => CartItemResource::collection($items),
                     'total' => number_format($total, 2),
                     'address' => new ShippingAddressResource($address),
+                    'payment' => new PaymentResource($payment),
                     'payment_method' => $dto->paymentMethod,
-                ]
-            ]);
+                ], 'Order placed successfully', 201);
+            }
+
+            return $this->success([
+                'require_payment' => false,
+                'order' => new OrderResource($order),
+                'items' => CartItemResource::collection($items),
+                'total' => number_format($total, 2),
+                'address' => new ShippingAddressResource($address),
+                'payment_method' => $dto->paymentMethod,
+            ], 'Order placed successfully', 201);
         } catch ( EmptyCartException $e ) {
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage(),
-            ], 400);
+            return $this->error($e->getMessage());
         } catch ( LowStockException $e ) {
             DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage()
-            ], 400);
+            return $this->error($e->getMessage());
         } catch ( Throwable $e ) {
             DB::rollBack();
-            return response()->unexpectedError($e);
+            return $this->unexpectedError($e);
         }
     }
 
@@ -134,12 +114,9 @@ class CheckoutController extends Controller
             }
             return response()->noContent();
         } catch ( AuthorizationException $e ) {
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage(),
-            ]);
+            return $this->error($e->getMessage());
         } catch ( Throwable $e ) {
-            return response()->unexpectedError($e);
+            return $this->unexpectedError($e);
         }
     }
 }

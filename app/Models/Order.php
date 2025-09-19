@@ -7,23 +7,24 @@ use Illuminate\Database\Eloquent\Model;
 class Order extends Model
 {
     protected $fillable = ['user_id', 'shipping_address_id', 'total', 'status'];
+    protected $casts = ['total' => 'decimal:2'];
 
-    public function user()
+    public function user ()
     {
         return $this->belongsTo(User::class);
     }
-    
-    public function shippingAddress()
+
+    public function shippingAddress ()
     {
         return $this->belongsTo(ShippingAddress::class);
     }
 
-    public function items()
+    public function items ()
     {
         return $this->hasMany(OrderItem::class);
     }
 
-    public function payment()
+    public function payment ()
     {
         return $this->hasOne(Payment::class);
     }

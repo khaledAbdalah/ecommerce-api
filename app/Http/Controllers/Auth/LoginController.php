@@ -43,22 +43,17 @@ class LoginController extends Controller
 
             $token = $user->createToken('token')->plainTextToken;
 
-            return response()->json([
-                'success' => true,
-                'message' => 'You are logged in successfully!',
-                'data' => [
-                    'user' => new UserResource($user),
-                    'token' => $token,
-                ]
-            ]);
+            return $this->success([
+                'user' => new UserResource($user),
+                'token' => $token,
+            ], 'You are logged in successfully!');
+
         } catch ( ValidationException $e ) {
-            return response()->json([
-                'success' => false,
-                'errors' => $e->errors(),
-            ], 422);
+            return $this->error($e->errors(), 422);
         } catch ( Throwable $e ) {
+
             $message = 'Failed to login!, please try again.';
-            return response()->unexpectedError($e, $message, [
+            return $this->unexpectedError($e, $message, [
                 'data' => $request->except('password'),
                 'ip' => $request->ip(),
                 'agent' => $request->userAgent(),
@@ -69,10 +64,7 @@ class LoginController extends Controller
     protected function isLoggedIn ()
     {
         if ( Auth::guard('sanctum')->check() ) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You are already authenticated.',
-            ], 403);
+            return $this->error('You are already authenticated.');
         }
     }
 

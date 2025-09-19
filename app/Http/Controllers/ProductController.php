@@ -19,29 +19,21 @@ class ProductController extends Controller
             $products = Product::with('categories')
                 ->paginate(10)
                 ->toResourceCollection();
-            return response()->json([
-                'success' => true,
-                'data' => [$products]
-            ]);
+            return $this->success($products);
         } catch ( Throwable $e ) {
-            return response()->unexpectedError($e);
+            return $this->unexpectedError($e);
         }
 
     }
 
     public function create ()
     {
+        $this->authorize('create', Product::class);
         try {
-            $this->authorize('create', Product::class);
             $categories = CategoryResource::collection(Category::all(['id', 'name']));
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'categories' => $categories,
-                ]
-            ]);
+            return $this->success(['categories' => $categories]);
         } catch ( Throwable $e ) {
-            return response()->unexpectedError($e);
+            return $this->unexpectedError($e);
         }
     }
 
@@ -51,15 +43,9 @@ class ProductController extends Controller
             $validated = $request->validated();
             $product = $service->create($request, $validated);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'ProductCollection added successfully',
-                'data' => [
-                    'product' => new ProductResource($product),
-                ]
-            ], 201);
+            return $this->success(['product' => new ProductResource($product)], 'ProductCollection added successfully', 201);
         } catch ( Throwable $e ) {
-            return response()->unexpectedError($e);
+            return $this->unexpectedError($e);
         }
     }
 
@@ -67,14 +53,9 @@ class ProductController extends Controller
     {
         try {
             $product->load('categories');
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'product' => new ProductResource($product),
-                ]
-            ]);
+            return $this->success(['product' => new ProductResource($product)]);
         } catch ( Throwable $e ) {
-            return response()->unexpectedError($e);
+            return $this->unexpectedError($e);
         }
     }
 
@@ -84,30 +65,21 @@ class ProductController extends Controller
             $validated = $request->validated();
             $product = $service->update($request, $validated, $product);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'ProductCollection updated successfully',
-                'data' => [
-                    'product' => new ProductResource($product),
-                ]
-            ]);
+            return $this->success(['product' => new ProductResource($product)], 'ProductCollection updated successfully');
         } catch ( Throwable $e ) {
-            return response()->unexpectedError($e);
+            return $this->unexpectedError($e);
         }
     }
 
     public function destroy (Product $product, ProductService $service)
     {
+        $this->authorize('delete', $product);
         try {
-            $this->authorize('delete', $product);
             $service->delete($product);
-            return response()->json([
-                'success' => true,
-                'message' => 'ProductCollection deleted successfully'
-            ]);
+            return $this->success(message: 'ProductCollection deleted successfully');
 
         } catch ( Throwable $e ) {
-            return response()->unexpectedError($e);
+            return $this->unexpectedError($e);
         }
     }
 }

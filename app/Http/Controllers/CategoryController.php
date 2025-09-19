@@ -19,12 +19,9 @@ class CategoryController extends Controller
     {
         try {
             $categories = new CategoryCollection(Category::paginate(10));
-            return response()->json([
-                'success' => true,
-                'data' => [$categories]
-            ]);
+            return $this->success($categories);
         } catch ( Throwable $e ) {
-            return response()->unexpectedError($e);
+            return $this->unexpectedError($e);
         }
     }
 
@@ -42,15 +39,10 @@ class CategoryController extends Controller
 
             $category = Category::create($validated);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Category created successfully',
-                'data' => [
-                    'category' => new CategoryResource($category)
-                ]
-            ], 201);
+            return $this->success(['category' => new CategoryResource($category)],
+                'Category created successfully', 201);
         } catch ( Throwable $e ) {
-            return response()->unexpectedError($e);
+            return $this->unexpectedError($e);
         }
     }
 
@@ -60,14 +52,9 @@ class CategoryController extends Controller
     public function show (Category $category)
     {
         try {
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'category' => new CategoryResource($category),
-                ]
-            ]);
+            return $this->success(['category' => new CategoryResource($category)]);
         } catch ( Throwable $e ) {
-            return response()->unexpectedError($e);
+            return $this->unexpectedError($e);
         }
     }
 
@@ -87,15 +74,9 @@ class CategoryController extends Controller
             $category->fill($validated)->save();
             $category = $category->fresh();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Category updated successfully',
-                'data' => [
-                    'category' => new CategoryResource($category),
-                ]
-            ]);
+            return $this->success(['category' => new CategoryResource($category)], 'Category updated successfully');
         } catch ( Throwable $e ) {
-            return response()->unexpectedError($e);
+            return $this->unexpectedError($e);
         }
     }
 
@@ -109,13 +90,10 @@ class CategoryController extends Controller
             $category->deleteThumbnail();
             $category->delete();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Category deleted successfully'
-            ]);
+            return $this->success(message: 'Category deleted successfully');
 
         } catch ( Throwable $e ) {
-            return response()->unexpectedError($e);
+            return $this->unexpectedError($e);
         }
     }
 }

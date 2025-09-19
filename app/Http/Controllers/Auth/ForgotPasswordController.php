@@ -31,19 +31,12 @@ class ForgotPasswordController extends Controller
             ]);
 
             event(new PasswordResetTokenEvent($validated['email'], $token));
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Reset password token has been sent to you email'
-            ]);
+            return $this->success(message: 'Reset password token has been sent to you email');
 
         } catch ( ValidationException $e ) {
-            return response()->json([
-                'success' => false,
-                'errors' => $e->errors(),
-            ], 422);
+            return $this->error($e->errors(), 422);
         } catch ( Throwable $e ) {
-           return response()->unexpectedError($e);
+            return $this->unexpectedError($e);
         }
     }
 }

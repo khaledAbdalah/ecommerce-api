@@ -48,17 +48,11 @@ class ResetPasswordController extends Controller
 
             event(new PasswordReset($user));
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Password reset Successfully!',
-            ]);
+            return $this->success(message: 'Password reset Successfully!');
         } catch ( ValidationException $e ) {
-            return response()->json([
-                'success' => false,
-                'errors' => $e->errors()
-            ], 422);
+            return $this->error($e->errors(), 422);
         } catch ( Throwable $e ) {
-            return response()->unexpectedError($e);
+            return $this->unexpectedError($e);
         }
     }
 }

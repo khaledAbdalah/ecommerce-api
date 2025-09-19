@@ -22,13 +22,10 @@ class CartController extends Controller
 
         $total = $items->sum(fn ($item) => $item->total);
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'items' => CartItemResource::collection($items),
-                'total' => number_format($total, 2),
-                'items_count' => $items->count()
-            ]
+        return $this->success([
+            'items' => CartItemResource::collection($items),
+            'total' => number_format($total, 2),
+            'items_count' => $items->count()
         ]);
     }
 
@@ -59,25 +56,14 @@ class CartController extends Controller
                 $item = $item->load(['product']);
             }
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Item added to cart successfully',
-                'data' => [
-                    'item' => new CartItemResource($item),
-                ]
-            ], 201);
+            return $this->success(['item' => new CartItemResource($item)], 'Item added to cart successfully'
+                , 201);
         } catch ( ModelNotFoundException $e ) {
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage(),
-            ], 404);
+            return $this->error($e->getMessage(), 404);
         } catch ( LowStockException $e ) {
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage(),
-            ], 400);
+            return $this->error($e->getMessage());
         } catch ( Throwable $e ) {
-            return response()->unexpectedError($e);
+            return $this->unexpectedError($e);
         }
     }
 
@@ -91,20 +77,11 @@ class CartController extends Controller
             $item->fill(['quantity' => $request->quantity])->save();
             $item = $item->fresh(['product']);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Item updated successfully',
-                'data' => [
-                    'item' => new CartItemResource($item),
-                ]
-            ]);
+            return $this->success(['item' => new CartItemResource($item)], 'Item updated successfully');
         } catch ( LowStockException $e ) {
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage()
-            ], 400);
+            return $this->error($e->getMessage());
         } catch ( Throwable $e ) {
-            return response()->unexpectedError($e);
+            return $this->unexpectedError($e);
         }
     }
 
@@ -114,35 +91,22 @@ class CartController extends Controller
         try {
             $item->delete();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Item deleted successfully'
-            ]);
+            return $this->success(message: 'Item deleted successfully');
         } catch ( Throwable $e ) {
-            return response()->unexpectedError($e);
+            return $this->unexpectedError($e);
         }
     }
 
     public function clear (Request $request)
     {
         Cart::where('user_id', $request->user()->id)->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Cart cleared successfully'
-        ]);
+        return $this->success(message: 'Cart cleared successfully');
     }
 
     public function count (Request $request)
     {
         $count = Cart::where('user_id', $request->user()->id)->count();
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'count' => $count
-            ]
-        ]);
+        return $this->success(['count' => $count]);
     }
 
     protected function ensureStockAvailable (Product $product, int $quantity): void
